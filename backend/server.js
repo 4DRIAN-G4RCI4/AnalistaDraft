@@ -157,10 +157,21 @@ async function estatico(res, pathname) {
 // (100 KB comprimido). Así muchas visitas a la misma liga no lo recalculan.
 const TTL_ANALISIS = 5 * 60e3;
 const analisisObj = (liga, dias) => memo(`obj:${liga}:${dias}`, TTL_ANALISIS, () => analizar(liga, dias));
-const analisisListo = (liga, dias) => memo(`analisis:${liga}:${dias}`, TTL_ANALISIS, async () => {
-  const json = JSON.stringify(liga === HOY ? await analizarHoy() : await analisisObj(liga, dias));
-  return { json, gzip: zlib.gzipSync(json) };
-});
+// Si ya hay una versión anterior y la nueva tarda más de 2 s, se sirve la anterior y la nueva se termina
+// de calcular por detrás: con 0.1 CPU en Render recalcular "Hoy" pasa del corte de ~26 s de Netlify.
+const anterior = new Map();
+function analisisListo(liga, dias) {
+  const k = `${liga}:${dias}`;
+  const nuevo = memo(`analisis:${k}`, TTL_ANALISIS, async () => {
+    const json = JSON.stringify(liga === HOY ? await analizarHoy() : await analisisObj(liga, dias));
+    const listo = { json, gzip: zlib.gzipSync(json) };
+    anterior.set(k, listo);
+    return listo;
+  });
+  if (!anterior.has(k)) return nuevo;
+  nuevo.catch(() => {}); // si falla por detrás, se sigue sirviendo la anterior
+  return Promise.race([nuevo, new Promise(ok => setTimeout(() => ok(anterior.get(k)), 2000))]);
+}
 
 // "Hoy": los partidos de hoy (hora de Ciudad de México) de todas las ligas, juntos.
 const HOY = 'hoy';
@@ -221,5 +232,8 @@ http.createServer(async (req, res) => {
     enviar(res, 500, { error: 'No se pudieron obtener los datos de las fuentes. Intenta de nuevo en unos minutos.' });
   }
 }).listen(PORT, HOST, () => console.log(`AnalistaDraft en http://${HOST}:${PORT}`));
+
+// Precalentar "Hoy" (las 6 ligas) al arrancar: en Render el arranque lo dispara la primera visita, así las siguientes ya lo encuentran listo
+analisisListo(HOY, 1).catch(e => console.warn(`Precalentamiento: ${e.message}`));
 
 limpiarDisco().then(n => n && console.log(`Caché: ${n} archivos viejos borrados`), e => console.warn(`No se pudo limpiar la caché: ${e.message}`));
