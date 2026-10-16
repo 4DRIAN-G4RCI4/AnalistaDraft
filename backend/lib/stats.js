@@ -20,7 +20,7 @@ export async function previa(liga, eventoId) {
 }
 
 // Un partido terminado no cambia: se guarda para siempre.
-const jugado = (liga, id) => memo(`jugado:${id}`, Infinity, async () => {
+const jugado = (liga, id) => memo(`jugado:${id}`, 7 * 24 * 3600e3, async () => { // en memoria 7 días; en disco queda para siempre
   const s = await resumen(liga, id, Infinity);
   // Goles por tiempo (period 1 o 2; prórroga y penales no cuentan)
   const goles = (s.keyEvents ?? []).filter(k => k.scoringPlay && k.period?.number <= 2);
