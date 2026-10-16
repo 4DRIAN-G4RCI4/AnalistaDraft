@@ -1,0 +1,17 @@
+# Despliegue en Render (plan gratis): un solo servicio Node que sirve la API y la página compilada.
+services:
+  - type: web
+    name: analistadraft
+    runtime: node
+    plan: free
+    buildCommand: npm run build
+    startCommand: npm start
+    healthCheckPath: /api/ligas
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: HOST
+        value: 0.0.0.0
+      # Opcional: key gratis de https://the-odds-api.com para comparar varias casas
+      - key: ODDS_API_KEY
+        sync: false

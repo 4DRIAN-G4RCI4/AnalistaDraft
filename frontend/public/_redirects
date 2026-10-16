@@ -1,0 +1,4 @@
+# Netlify: la API vive en Render; se reenvía para que todo salga por el mismo dominio
+/api/*  https://analistadraft.onrender.com/api/:splat  200
+# La app maneja sus rutas (?liga=…&partido=…)
+/*      /index.html  200
