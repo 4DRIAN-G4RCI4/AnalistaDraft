@@ -1,5 +1,5 @@
 // Análisis en texto de un partido: puntos fuertes, alertas y balance, a partir del modelo y los datos.
-import { seleccionSugerida } from './modelo.js';
+import { seleccionSugerida, esValor } from './modelo.js';
 
 const pct = p => `${Math.round(p * 100)}%`;
 
@@ -11,7 +11,7 @@ function destacadas(p) {
   const modelo = p.modelo ?? p.probs;
   const valor = Object.entries(p.mercado)
     .map(([m, c]) => ({ mercado: m, prob: p.probs[m], cuota: c.cuota, ventaja: modelo[m] - c.prob }))
-    .filter(x => x.ventaja >= 0.03 && x.ventaja <= 0.12 && x.prob >= 0.45)
+    .filter(esValor)
     .sort((a, b) => b.ventaja - a.ventaja)[0] ?? null;
   const extra = Object.entries(p.extras ?? {})
     .map(([cat, e]) => ({ categoria: cat, ...seleccionSugerida(e.probs) }))
@@ -53,7 +53,7 @@ export function recomendadasPartido(p, max = 5) {
   agregar('goles', p.probs, m => {
     const c = p.mercado[m];
     if (c) return `Las casas lo pagan a ${c.cuota.toFixed(2)}: lo ven factible (${pct(c.prob)}).`;
-    return `Se esperan ${uno(xg.local + xg.visita)} goles (${L.nombre} ${uno(xg.local)}, ${V.nombre} ${uno(xg.visita)}), ajustado a lo que pagan las casas.`;
+    return `Se esperan ${uno(xg.local + xg.visita)} goles (${L.nombre} ${uno(xg.local)}, ${V.nombre} ${uno(xg.visita)}), ${p.ajustadoACasas ? 'ajustado a lo que pagan las casas' : 'solo con estadística (sin cuotas de casas)'}.`;
   });
 
   for (const [cat, e] of Object.entries(p.extras ?? {})) {
@@ -122,7 +122,7 @@ export function resumenPartido(p) {
   if (!Object.keys(p.mercado).length) alertas.push('Sin cuotas de casas para este partido: la probabilidad sale solo de la estadística.');
 
   if (Math.abs(probs.Local - probs.Visita) < 0.1) {
-    alertas.push(`Partido parejo: el empate ronda ${pct(probs.Empate)}. "Hay ganador" o ganador directo son riesgosos.`);
+    alertas.push(`Partido parejo: el empate ronda ${pct(probs.Empate)}. Apostar a un ganador directo es riesgoso.`);
   }
   for (const e of [L, V]) {
     if ((e.pj ?? 0) < 4) alertas.push(`${e.nombre} lleva pocos partidos (${e.pj ?? 0}): el modelo se apoya en el promedio de la liga.`);
@@ -151,7 +151,7 @@ export function resumenPartido(p) {
   const horas = (new Date(p.fecha) - Date.now()) / 3600e3;
   const alin = p.alineacion ?? {};
   if (alin[L.id] && alin[V.id]) fuertes.push('Alineaciones confirmadas: las cuotas ya reflejan a los titulares.');
-  else if (horas < 3) alertas.push('Faltan menos de 3 h y aún no hay alineaciones: revisa titulares antes de apostar, un cambio puede mover todo.');
+  else if (horas >= 0 && horas < 3) alertas.push('Faltan menos de 3 h y aún no hay alineaciones: revisa titulares antes de apostar, un cambio puede mover todo.');
   else datos.push(`Alineaciones: se publican ~1 h antes del partido. Actualiza cerca de la hora: si hay cambios, las cuotas se mueven y el análisis se ajusta.`);
 
   const bajas = p.noticias.filter(n => n.alerta).length;
@@ -167,18 +167,26 @@ export function resumenPartido(p) {
   return { destacadas: d, fuertes, alertas, datos, balance, sugerida: s, ...recomendacion(p, d, { horas, confirmadas, bajas, alertas }) };
 }
 
-// Qué tan recomendable es el partido y cuándo conviene apostarlo.
+// Mercados cuya probabilidad sale de lo que pagan las casas (goles y, derivado de ellos, tiempos).
+const RESPALDO_CASAS = ['goles', 'tiempos'];
+
+// Qué tan recomendable es la apuesta que se muestra primero (lista[0]) y cuándo conviene revisarla.
 // nivel: alta = probable, respaldada por lo que pagan las casas y con pocas alertas; media = probable; baja = sin apuesta clara.
 export function recomendacion(p, d, { horas, confirmadas, bajas, alertas }) {
-  const prob = d.probable?.prob ?? 0;
-  const nivel = !d.probable ? 'baja' : prob >= 0.75 && p.ajustadoACasas && alertas.length <= 2 ? 'alta' : prob >= 0.65 ? 'media' : 'baja';
-  const hora = new Date(new Date(p.fecha).getTime() - 3600e3).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Mexico_City' });
+  const primera = d.lista?.[0];
+  const prob = primera?.prob ?? 0;
+  const respaldada = p.ajustadoACasas && RESPALDO_CASAS.includes(primera?.categoria);
+  const nivel = !primera || horas < 0 ? 'baja' : prob >= 0.75 && respaldada && alertas.length <= 2 ? 'alta' : prob >= 0.65 ? 'media' : 'baja';
 
   let cuando;
-  if (!d.probable && !d.valor) cuando = { momento: 'evitar', texto: 'Sin apuesta clara: mejor no apostar este partido.' };
+  if (!primera && !d.valor) cuando = { momento: 'evitar', texto: 'Sin apuesta clara: mejor no apostar este partido.' };
   else if (horas < 0) cuando = { momento: 'evitar', texto: 'El partido ya empezó: estas probabilidades son de antes del inicio.' };
-  else if (confirmadas) cuando = { momento: 'ahora', texto: 'Alineaciones confirmadas: buen momento para apostar.' };
-  else if (bajas || alertas.length >= 3) cuando = { momento: 'esperar', texto: `Espera a las alineaciones (~1 h antes, cerca de las ${hora} hora CDMX): hay alertas o posibles bajas.` };
+  else if (confirmadas) cuando = { momento: 'ahora', texto: 'Alineaciones confirmadas: buen momento para revisarla.' };
+  else if (bajas || alertas.length >= 3) {
+    cuando = { momento: 'esperar', texto: horas <= 1.5
+      ? 'Las alineaciones están por salir y hay alertas o posibles bajas: revísalas antes de decidir.'
+      : 'Espera a las alineaciones (salen ~1 h antes del partido): hay alertas o posibles bajas.' };
+  }
   else if (horas > 24 && d.valor) cuando = { momento: 'esperar', texto: 'Falta más de un día. La de valor conviene antes de que la cuota se ajuste; para lo demás, revisa el día del partido.' };
   else if (horas > 24) cuando = { momento: 'esperar', texto: 'Falta más de un día: puede haber cambios. Revisa de nuevo el día del partido.' };
   else cuando = { momento: 'ahora', texto: 'Sin alertas importantes. Para goleadores y tiros, espera a la alineación (~1 h antes).' };

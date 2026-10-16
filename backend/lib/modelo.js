@@ -249,6 +249,10 @@ export function seleccionSugerida(probs, { minProb = 0.6, maxProb = 0.85 } = {})
   return prob >= minProb ? { mercado, prob } : null;
 }
 
+// Valor = la estadística pura ve más que las casas (entre 3 y 12 pts) Y, con la probabilidad final,
+// la cuota real paga más de lo justo (prob × cuota > 1). Sin lo segundo, el margen de la casa se come la ventaja.
+export const esValor = x => x.ventaja >= 0.03 && x.ventaja <= 0.12 && x.prob >= 0.45 && x.prob * x.cuota > 1;
+
 // "Con valor": donde la estadística pura ve más que las casas. La prob. mostrada es la final (ajustada al mercado).
 // maxValor: diferencias enormes contra la casa casi siempre son error del modelo (lesiones, rotaciones), no valor real.
 export function armarParlays(partidos, { minValor = 0.03, maxValor = 0.12, maxPiernas = 4 } = {}) {
@@ -259,7 +263,7 @@ export function armarParlays(partidos, { minValor = 0.03, maxValor = 0.12, maxPi
     if (s) segura.push({ partidoId: p.id, partido: p.titulo, ...s, cuota: p.mercado[s.mercado]?.cuota ?? null });
     const conValor = Object.entries(p.mercado)
       .map(([m, c]) => ({ partidoId: p.id, partido: p.titulo, mercado: m, prob: p.probs[m], cuota: c.cuota, ventaja: (p.modelo ?? p.probs)[m] - c.prob }))
-      .filter(x => x.ventaja >= minValor && x.ventaja <= maxValor && x.prob >= 0.45)
+      .filter(x => esValor(x) && x.ventaja >= minValor && x.ventaja <= maxValor)
       .sort((a, b) => b.ventaja - a.ventaja)[0];
     if (conValor) valor.push(conValor);
   }
