@@ -2,7 +2,8 @@ import http from 'node:http';
 import path from 'node:path';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { LIGAS, tabla, partidos, noticias, valorPlantilla } from './lib/datos.js';
+import zlib from 'node:zlib';
+import { LIGAS, tabla, partidos, noticias, valorPlantilla, memo } from './lib/datos.js';
 import { golesEsperados, mercados, decimal, sinMargen, armarParlays, ajustarAMercado, combinarGoles, conteoEsperado, mercadosConteo, fraccion1T, mercadosTiempos, probGoleadores } from './lib/modelo.js';
 import { previa, estadisticasEquipo, CATEGORIAS } from './lib/stats.js';
 import { eventosLiga, buscarEvento, consenso } from './lib/cuotas.js';
@@ -141,6 +142,25 @@ async function estatico(res, pathname) {
   }
 }
 
+// El análisis completo se reutiliza unos minutos: calcularlo cuesta ~1 s de CPU y pesa ~400 KB
+// (100 KB comprimido). Así muchas visitas a la misma liga no lo recalculan.
+const TTL_ANALISIS = 5 * 60e3;
+const analisisListo = (liga, dias) => memo(`analisis:${liga}:${dias}`, TTL_ANALISIS, async () => {
+  const json = JSON.stringify(await analizar(liga, dias));
+  return { json, gzip: zlib.gzipSync(json) };
+});
+
+function enviarAnalisis(req, res, { json, gzip }) {
+  const comprime = /\bgzip\b/.test(req.headers['accept-encoding'] ?? '');
+  res.writeHead(200, {
+    'content-type': 'application/json; charset=utf-8',
+    'cache-control': 'public, max-age=60',
+    vary: 'Accept-Encoding',
+    ...(comprime && { 'content-encoding': 'gzip' }),
+  });
+  res.end(comprime ? gzip : json);
+}
+
 const enviar = (res, code, data) => {
   res.writeHead(code, { 'content-type': 'application/json; charset=utf-8' });
   res.end(JSON.stringify(data));
@@ -155,7 +175,7 @@ http.createServer(async (req, res) => {
       const liga = url.searchParams.get('liga');
       if (!Object.hasOwn(LIGAS, liga)) return enviar(res, 400, { error: 'Liga inválida' });
       const dias = Math.min(Math.max(parseInt(url.searchParams.get('dias'), 10) || 7, 1), 14);
-      return enviar(res, 200, await analizar(liga, dias));
+      return enviarAnalisis(req, res, await analisisListo(liga, dias));
     }
     if (url.pathname.startsWith('/api/')) return enviar(res, 404, { error: 'No encontrado' });
     if (req.method !== 'GET' && req.method !== 'HEAD') return enviar(res, 405, { error: 'Método no permitido' });

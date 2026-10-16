@@ -2586,3 +2586,130 @@ html {
 .boleto-fab {
   bottom: 80px;
 }
+
+/* ======================================================================
+   Legibilidad: más contraste y peso en las letras (en claro no se leían)
+   ====================================================================== */
+
+:root {
+  --text-dim: #3a4252;
+  --text-faint: #4f5668;
+}
+
+:root.dark {
+  --text-dim: #aab2c5;
+  --text-faint: #959cb3;
+}
+
+body {
+  font-weight: 500;
+}
+
+.muted,
+.team-meta,
+.leg-date,
+.leg-match,
+.reco-partido,
+.reco-paga,
+.mejor-meta,
+.mejor-razon,
+.mejor-razon-linea,
+.match-date,
+.match-xg-label,
+.jugador-meta,
+.forma-comp,
+.forma-prom,
+.news-summary,
+.tab-nota,
+.simulador-nota,
+.reco-aviso,
+.parlay-desc,
+.panel-sub,
+.updated {
+  font-weight: 600;
+}
+
+.team-name,
+.leg-market,
+.reco-mercado,
+.mejor-mercado {
+  font-weight: 800;
+}
+
+.prob-table td {
+  font-weight: 600;
+}
+
+.prob-table th,
+.market-overview-label,
+.mejor-label {
+  font-weight: 700;
+}
+
+.coin-filter-chip,
+.timeframe-btn {
+  font-weight: 700;
+}
+
+/* valor de plantilla como dinero */
+.team-valor {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.team-valor b {
+  font-family: var(--font-mono);
+  font-weight: 800;
+  color: var(--text);
+}
+
+/* tablero "Próximos partidos" con el filtro de días arriba */
+.tablero-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: var(--sp-3) var(--sp-5);
+  margin-bottom: var(--sp-4);
+  padding: var(--sp-4) var(--sp-5);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(120deg, var(--accent-dim), var(--surface) 60%);
+}
+
+.tablero-head h2 {
+  font-size: 1.4rem;
+  font-weight: 800;
+}
+
+.tablero-sub {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.tablero-head .dias {
+  margin: 0;
+  flex-wrap: wrap;
+}
+
+.tablero-head .timeframe-btn {
+  padding: 8px 14px;
+  font-size: 0.82rem;
+  background: var(--surface);
+}
+
+.tablero-head .timeframe-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
+}
+
+.filters {
+  margin-bottom: var(--sp-4);
+}
+
+.team-valor b {
+  white-space: nowrap;
+}
