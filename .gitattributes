@@ -1,0 +1,2 @@
+# Saltos de línea LF en todo el repo: la CSP usa la huella sha256 del script en línea de index.html
+* text=auto eol=lf

@@ -30,7 +30,10 @@ export function analizarBoleto(piernas, { monto = 0, momio = null } = {}) {
   if (manuales.length) {
     alertas.push(`${manuales.length} selección(es) sin modelo (corners, jugadores, etc.): su probabilidad se estimó solo con el momio de la casa.`);
   }
-  const porPartido = Object.groupBy(piernas, (x) => x.partidoId ?? x.partido);
+  const porPartido = piernas.reduce((g, x) => {
+    (g[x.partidoId ?? x.partido] ??= []).push(x);
+    return g;
+  }, {});
   const repetidos = Object.values(porPartido).filter((g) => g.length > 1);
   if (repetidos.length) {
     alertas.push(`Hay ${repetidos.length} partido(s) con varias selecciones: están relacionadas (un 0-0 o una roja temprana las tumba juntas), así que la probabilidad real puede ser menor.`);
