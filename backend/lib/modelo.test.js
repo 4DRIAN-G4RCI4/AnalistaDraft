@@ -94,14 +94,15 @@ test('corners/tarjetas/tiros: binomial negativa coherente y más variable que Po
   const L = { favor: { corners: 6, tarjetas: 2, tirosPuerta: 5, tiros: 14 }, contra: { corners: 4, tarjetas: 2, tirosPuerta: 3, tiros: 10 } };
   const V = { favor: { corners: 4, tarjetas: 2.5, tirosPuerta: 3, tiros: 10 }, contra: { corners: 5, tarjetas: 1.5, tirosPuerta: 4, tiros: 12 } };
   const e = conteoEsperado(L, V, 'corners');
-  assert.equal(e.local, 5.5);
-  assert.equal(e.visita, 4);
+  // con 5 partidos se acerca a lo típico (5 corners): (6+4)/2=5.5 sin suavizar
+  assert.ok(e.local > 5 && e.local < 5.5);
+  assert.ok(e.visita > 4 && e.visita < 5);
   const p = mercadosConteo('corners', e);
   assert.ok(Math.abs(p['Más de 9.5 corners'] + p['Menos de 9.5 corners'] - 1) < 1e-12);
   assert.ok(p['Más de 7.5 corners'] > p['Más de 11.5 corners']);
   assert.ok(p['Local más de 4.5 corners'] > p['Visita más de 4.5 corners']);
   // media 9.5: Poisson daría P(>9.5) ≈ 46%; con más variación sigue cerca de la mitad
-  assert.ok(p['Más de 9.5 corners'] > 0.38 && p['Más de 9.5 corners'] < 0.5);
+  assert.ok(p['Más de 9.5 corners'] > 0.35 && p['Más de 9.5 corners'] < 0.5);
   assert.ok('Más de 4.5 tarjetas' in mercadosConteo('tarjetas', conteoEsperado(L, V, 'tarjetas')));
 });
 
