@@ -132,10 +132,18 @@ export default function App() {
                 </button>
               ))}
             </div>
-            <div className="timeframe-group" aria-label="Rango de días">
+          </div>
+
+          {/* Tablero: filtro de días arriba de los partidos */}
+          <div className="tablero-head">
+            <div>
+              <h2 id="partidos-titulo">Próximos partidos</h2>
+              <span className="tablero-sub">{data ? `${data.liga} · ${data.partidos.length} partidos` : "Cargando…"}</span>
+            </div>
+            <div className="timeframe-group dias" role="group" aria-label="Rango de días">
               {DIAS.map((d) => (
-                <button key={d} type="button" className={`timeframe-btn ${dias === d ? "active" : ""}`} onClick={() => setDias(d)}>
-                  {d} días
+                <button key={d} type="button" aria-pressed={dias === d} className={`timeframe-btn ${dias === d ? "active" : ""}`} onClick={() => setDias(d)}>
+                  Próximos {d} días
                 </button>
               ))}
             </div>
@@ -153,7 +161,7 @@ export default function App() {
             <>
               {/* Partidos a la izquierda; lo más recomendable en una columna aparte a la derecha */}
               <div className="home-grid">
-                <section id="partidos" aria-label="Partidos">
+                <section id="partidos" aria-labelledby="partidos-titulo">
                   {data.partidos.length ? (
                     <div className="match-grid">
                       {data.partidos.map((p) => (
