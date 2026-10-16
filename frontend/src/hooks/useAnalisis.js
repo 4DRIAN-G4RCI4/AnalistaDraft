@@ -11,7 +11,7 @@ const DESPIERTA = [502, 503, 504];
 const REINTENTOS = 8;
 const ESPERA = 8000;
 
-async function pedir(url, signal, alEsperar) {
+export async function pedir(url, signal, alEsperar) {
   for (let intento = 0; ; intento++) {
     const r = await fetch(url, { signal });
     if (DESPIERTA.includes(r.status) && intento < REINTENTOS) {
