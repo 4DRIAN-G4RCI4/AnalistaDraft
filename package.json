@@ -1,0 +1,20 @@
+{
+  "name": "analista-draft",
+  "private": true,
+  "version": "0.1.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "concurrently -n backend,frontend -c green,cyan \"npm:dev:backend\" \"npm:dev:frontend\"",
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "build": "npm --prefix frontend ci --include=dev && npm --prefix frontend run build",
+    "start": "npm --prefix backend start",
+    "test": "npm --prefix backend test && npm --prefix frontend test",
+    "compartir": "npm --prefix frontend run build && concurrently -n app,tunel -c green,magenta \"npm --prefix backend start\" \"cloudflared tunnel --protocol http2 --url http://localhost:4000\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}
