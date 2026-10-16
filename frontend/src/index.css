@@ -2581,3 +2581,8 @@ html {
   flex-shrink: 0;
   margin-top: 1px;
 }
+
+/* Netlify pone su insignia "Powered by Netlify" abajo a la derecha: el botón del simulador va encima */
+.boleto-fab {
+  bottom: 80px;
+}
