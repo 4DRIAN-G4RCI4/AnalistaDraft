@@ -45,7 +45,7 @@ function Fila({ p, m, prob, est, casa, destacado, boleto, soloEst, simple }) {
 }
 
 const NOTA = {
-  tiempos: "Con los goles esperados del partido (ajustados a las casas) y en qué tiempo suelen caer los goles de estos equipos.",
+  tiempos: "Con los goles esperados del partido y en qué tiempo suelen caer los goles de estos equipos.",
   jugadores: "Su parte de los tiros y goles de su equipo en los últimos partidos × lo que se espera del equipo hoy. Si ya hay alineación y no es titular, baja mucho.",
   otros: "Calculado con sus últimos partidos (incluye copas). Las casas no publican estas cuotas gratis: es solo estadística.",
   tiros: "Tiros totales = todos los intentos (a puerta, desviados y bloqueados), como los cuenta ESPN. Cada casa tiene sus reglas (algunas no cuentan los bloqueados) y ESPN no publica gratis los tiros dentro del área: lo más confiable es Tiros a puerta.",
@@ -249,13 +249,12 @@ export default function PartidoPage({ p, boleto, onVolver }) {
             <h2>Mercados</h2>
             <span className="panel-sub">{simple ? "solo las más probables" : "Paga en gris = momio justo (la casa no lo publica)"}</span>
           </div>
-          <div className="timeframe-group tabs" role="tablist" aria-label="Tipo de mercado">
+          <div className="timeframe-group tabs" role="group" aria-label="Tipo de mercado">
             {tabs.map(([id, nombre]) => (
               <button
                 key={id}
                 type="button"
-                role="tab"
-                aria-selected={tab === id}
+                aria-pressed={tab === id}
                 className={`timeframe-btn ${tab === id ? "active" : ""}`}
                 onClick={() => {
                   setTab(id);
@@ -306,6 +305,11 @@ export default function PartidoPage({ p, boleto, onVolver }) {
             <button type="button" className="link-btn" onClick={() => setVerTodos((v) => !v)} aria-expanded={verTodos}>
               {verTodos ? "− Ver solo lo principal" : tab === "jugadores" ? "+ Ver todas las columnas (2+ goles, 3+ tiros…)" : `+ Ver todos los mercados (${filas.length}) con detalle`}
             </button>
+          )}
+          {tab !== "jugadores" && (
+            <p className="tab-nota">
+              <b>Paga</b> en negritas = cuota real de las casas. En gris = cuota justa según la probabilidad: tu casa pagará un poco menos.
+            </p>
           )}
           {soloEst && <p className="tab-nota">{NOTA[tab] ?? NOTA.otros}</p>}
         </section>

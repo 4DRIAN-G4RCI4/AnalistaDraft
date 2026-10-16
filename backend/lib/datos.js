@@ -1,7 +1,12 @@
 // Fuentes gratuitas sin API key: ESPN (partidos, tabla, momios DraftKings, noticias) y
 // transfermarkt-datasets (valor de mercado de jugadores, actualizado semanalmente).
 import zlib from 'node:zlib';
-import { mkdir, readFile, writeFile, stat } from 'node:fs/promises';
+import { mkdir, readFile, writeFile, stat, readdir, rm } from 'node:fs/promises';
+import { promisify } from 'node:util';
+
+const gunzip = promisify(zlib.gunzip);
+const MAX_DESCARGA = 100 * 2 ** 20; // el CSV de jugadores pesa ~5 MB comprimido; más es sospechoso
+const MAX_DESCOMPRIMIDO = 300 * 2 ** 20; // ~20 MB real; tope contra una "bomba" gzip
 
 export const LIGAS = {
   'eng.1': { nombre: 'Premier League', tm: 'GB1' },
@@ -19,14 +24,43 @@ const MIN_JUGADORES = 18; // recién ascendidos aparecen con 1-4 jugadores: su v
 const ALERTA =/lesi|baja|descart|suspend|duda|fuera de|expuls|sancion|enferm|operad/i;
 
 const cache = new Map();
+const MAX_MEMO = 3000; // entradas en memoria; arriba de esto se tiran las vencidas y luego las más viejas
 // Guarda la promesa (no el resultado) para que llamadas simultáneas compartan una sola carga.
 export function memo(clave, ms, fn) {
   const c = cache.get(clave);
-  if (c && Date.now() - c.t < ms) return c.v;
+  if (c && Date.now() - c.t < c.ms) return c.v;
+  if (cache.size >= MAX_MEMO) podar();
   const v = fn();
-  cache.set(clave, { t: Date.now(), v });
+  cache.set(clave, { t: Date.now(), ms, v });
   v.catch(() => cache.delete(clave)); // no cachear errores
   return v;
+}
+
+function podar() {
+  const ahora = Date.now();
+  for (const [k, c] of cache) if (ahora - c.t >= c.ms) cache.delete(k);
+  // el Map conserva el orden de inserción: las primeras son las más viejas
+  for (const k of cache.keys()) {
+    if (cache.size < MAX_MEMO * 0.8) break;
+    cache.delete(k);
+  }
+}
+
+// Al arrancar: borrar respuestas de ESPN guardadas hace más de 30 días (la caché en disco no crece sin fin).
+const VIDA_DISCO = 30 * 24 * 3600e3;
+export async function limpiarDisco() {
+  const dir = new URL('fuentes/', CACHE_DIR);
+  const archivos = await readdir(dir).catch(() => []);
+  let borrados = 0;
+  for (const a of archivos) {
+    const ruta = new URL(a, dir);
+    const s = await stat(ruta).catch(() => null);
+    if (s && Date.now() - s.mtimeMs > VIDA_DISCO) {
+      await rm(ruta, { force: true });
+      borrados++;
+    }
+  }
+  return borrados;
 }
 
 // Cuánto se reutiliza cada respuesta de ESPN antes de volver a pedirla.
@@ -131,7 +165,11 @@ async function descargarTM(archivo) {
   if (fresco) return readFile(ruta, 'utf8');
   const r = await fetch(`${TM}/${archivo}`, { signal: AbortSignal.timeout(60000) });
   if (!r.ok) throw new Error(`${r.status} descargando ${archivo}`);
-  const texto = zlib.gunzipSync(Buffer.from(await r.arrayBuffer())).toString();
+  if (Number(r.headers.get('content-length')) > MAX_DESCARGA) throw new Error(`${archivo} demasiado grande`);
+  const comprimido = Buffer.from(await r.arrayBuffer());
+  if (comprimido.length > MAX_DESCARGA) throw new Error(`${archivo} demasiado grande`);
+  // asíncrono para no congelar el servidor mientras descomprime; con tope de tamaño
+  const texto = (await gunzip(comprimido, { maxOutputLength: MAX_DESCOMPRIMIDO })).toString();
   await writeFile(ruta, texto);
   return texto;
 }
