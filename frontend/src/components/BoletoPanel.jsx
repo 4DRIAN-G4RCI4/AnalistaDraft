@@ -13,14 +13,16 @@ const dinero = (n) => `$${n.toFixed(2)}`;
 // La cuota sale sola: lo que pagan las casas y, donde no publican, la cuota justa del modelo.
 export default function BoletoPanel({ boleto, abierto, setAbierto }) {
   const [monto, setMonto] = useState("");
+  const [momioCasa, setMomioCasa] = useState(""); // el que te da tu casa (p. ej. Draftea); manda sobre el estimado
   const [manual, setManual] = useState({ texto: "", cuota: "" });
   const [verManual, setVerManual] = useState(false);
   const [verAnalisis, setVerAnalisis] = useState(false);
   const { piernas, quitar, vaciar, agregar } = boleto;
 
-  const cuota = piernas.reduce((c, x) => c * (x.cuota ?? 1 / x.prob), 1);
+  const deTuCasa = numero(momioCasa) > 1 ? numero(momioCasa) : null;
+  const cuota = deTuCasa ?? piernas.reduce((c, x) => c * (x.cuota ?? 1 / x.prob), 1);
   const todasConCasa = piernas.length > 0 && piernas.every((x) => x.cuota);
-  const a = analizarBoleto(piernas, { monto: numero(monto) ?? 0 });
+  const a = analizarBoleto(piernas, { monto: numero(monto) ?? 0, momio: deTuCasa });
   const apuesta = numero(monto);
 
   const panel = useRef(null);
@@ -110,6 +112,10 @@ export default function BoletoPanel({ boleto, abierto, setAbierto }) {
               <span className="market-overview-label">¿Cuánto apostarías?</span>
               <input inputMode="decimal" placeholder="Ej. 50" value={monto} onChange={(e) => setMonto(e.target.value)} />
             </label>
+            <label className="simulador-monto">
+              <span className="market-overview-label">Momio que te da tu casa (opcional)</span>
+              <input inputMode="decimal" placeholder={`Ej. 2.41 · estimado ${piernas.reduce((c, x) => c * (x.cuota ?? 1 / x.prob), 1).toFixed(2)}`} value={momioCasa} onChange={(e) => setMomioCasa(e.target.value)} />
+            </label>
 
             <div className="boleto-resumen">
               <div>
@@ -133,9 +139,11 @@ export default function BoletoPanel({ boleto, abierto, setAbierto }) {
               </div>
             </div>
             <p className="simulador-nota">
-              {todasConCasa
-                ? "Cuota calculada con lo que pagan las casas. La de tu casa puede variar un poco."
-                : "Cuota estimada: donde la casa no publica cuota se usa la justa según la probabilidad. Tu casa pagará algo menos."}
+              {deTuCasa
+                ? `Con el momio de tu casa. Según nuestra probabilidad (${pct(a.prob)}), lo justo sería ${a.cuotaJusta.toFixed(2)}: ${deTuCasa >= a.cuotaJusta ? "tu casa paga más que eso." : "tu casa paga menos que eso."}`
+                : todasConCasa
+                  ? "Cuota calculada con lo que pagan las casas. La de tu casa puede variar un poco."
+                  : "Cuota estimada. Si son varias del mismo partido (SGP), tu casa calcula su propio momio: escríbelo arriba para ver tu ganancia real."}
             </p>
 
             <button type="button" className="news-toggle" onClick={() => setVerAnalisis((v) => !v)} aria-expanded={verAnalisis}>
