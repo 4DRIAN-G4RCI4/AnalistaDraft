@@ -5,7 +5,32 @@ import { ESPN, json, memo } from './datos.js';
 const TTL_PREVIA = 20 * 60e3; // alineaciones y últimos resultados pueden cambiar cerca del partido
 export const CATEGORIAS = ['corners', 'tarjetas', 'tirosPuerta', 'tiros'];
 
-const resumen = (liga, id, ttl) => json(`${ESPN}/site/v2/sports/soccer/${liga}/summary?event=${id}`, ttl);
+// Un resumen de ESPN pesa ~330 KB y se piden más de 100 por liga: se guarda solo lo que se usa (~5 KB).
+// Con 0.1 CPU en Render, leer los resúmenes completos tardaba decenas de segundos por liga.
+const STATS = ['wonCorners', 'yellowCards', 'redCards', 'shotsOnTarget', 'totalShots', 'totalGoals'];
+const soloStats = st => (st ?? []).filter(x => STATS.includes(x.name)).map(({ name, value, displayValue }) => ({ name, value, displayValue }));
+
+const compacto = s => ({
+  lastFiveGames: (s.lastFiveGames ?? []).map(g => ({
+    team: { id: g.team?.id },
+    events: (g.events ?? []).map(e => ({
+      id: e.id, gameDate: e.gameDate, score: e.score, gameResult: e.gameResult, atVs: e.atVs,
+      leagueAbbreviation: e.leagueAbbreviation, opponent: { displayName: e.opponent?.displayName },
+    })),
+  })),
+  rosters: (s.rosters ?? []).map(r => ({
+    team: { id: r.team?.id },
+    roster: (r.roster ?? []).map(j => ({
+      athlete: { id: j.athlete?.id, displayName: j.athlete?.displayName }, position: { abbreviation: j.position?.abbreviation },
+      starter: j.starter, subbedIn: j.subbedIn, stats: soloStats(j.stats),
+    })),
+  })),
+  keyEvents: (s.keyEvents ?? []).filter(k => k.scoringPlay).map(k => ({ scoringPlay: true, team: { id: k.team?.id }, period: { number: k.period?.number } })),
+  boxscore: { teams: (s.boxscore?.teams ?? []).map(t => ({ team: { id: t.team?.id }, statistics: soloStats(t.statistics) })) },
+});
+
+const resumen = (liga, id, ttl) =>
+  json(`${ESPN}/site/v2/sports/soccer/${liga}/summary?event=${id}`, ttl, `resumen_v2_${liga}_${id}`, compacto);
 const valor = (stats, nombre) => Number(stats?.find(s => s.name === nombre)?.displayValue ?? stats?.find(s => s.name === nombre)?.value) || 0;
 
 export async function previa(liga, eventoId) {

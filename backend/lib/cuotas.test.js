@@ -56,3 +56,10 @@ test('memo: no crece sin límite, tira primero lo vencido y lo más viejo', asyn
   await memo('relleno-3099', 60e3, () => { reusado = false; return ok(); });
   assert.ok(reusado); // las recientes siguen
 });
+
+test('csv: comillas, comillas escapadas, campos vacíos y solo las columnas pedidas', async () => {
+  const { csv } = await import('./datos.js');
+  const t = 'a,b,c,d\n"1","x, y",,"di ""z"""\n2,simple,3,\r\n';
+  assert.deepEqual(csv(t, ['b', 'd']), [{ b: 'x, y', d: 'di "z"' }, { b: 'simple', d: '' }]);
+  assert.deepEqual(csv(t)[0], { a: '1', b: 'x, y', c: '', d: 'di "z"' });
+});
