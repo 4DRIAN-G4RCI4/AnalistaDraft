@@ -3,7 +3,7 @@ import path from 'node:path';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import zlib from 'node:zlib';
-import { LIGAS, tabla, partidos, noticias, valorPlantilla, memo } from './lib/datos.js';
+import { LIGAS, tabla, partidos, noticias, valorPlantilla, memo, limpiarDisco } from './lib/datos.js';
 import { golesEsperados, mercados, decimal, sinMargen, armarParlays, ajustarAMercado, combinarGoles, conteoEsperado, mercadosConteo, fraccion1T, mercadosTiempos, probGoleadores } from './lib/modelo.js';
 import { previa, estadisticasEquipo, CATEGORIAS } from './lib/stats.js';
 import { eventosLiga, buscarEvento, consenso } from './lib/cuotas.js';
@@ -12,16 +12,27 @@ import { resumenPartido } from './lib/analisis.js';
 const PORT = Number(process.env.PORT) || 4000; // el frontend (Vite) hace proxy de /api a este puerto
 const HOST = process.env.HOST || '127.0.0.1'; // en producción (Render) HOST=0.0.0.0
 
-// Límite de consultas a la API por persona: la página hace 1-2 por liga, esto solo frena abusos.
-const LIMITE_POR_MINUTO = 60;
+// Límite de consultas a la API: solo frena abusos (la página hace 1-2 por liga y el análisis sale de caché).
+// La IP es el ÚLTIMO valor de x-forwarded-for: lo agrega el proxy de Render y el cliente no lo puede
+// falsificar (los primeros sí). Por Netlify ese valor es su servidor de borde, que comparten muchos
+// visitantes, por eso el límite es holgado.
+const LIMITE_POR_MINUTO = 300;
+const MAX_IPS = 10_000;
 const consultas = new Map();
+function ipCliente(req) {
+  const xff = req.headers['x-forwarded-for'];
+  return xff ? String(xff).split(',').at(-1).trim() : req.socket.remoteAddress;
+}
 function excedeLimite(req) {
-  // Detrás del proxy de Render la IP real viene en x-forwarded-for
-  const ip = String(req.headers['x-forwarded-for'] ?? req.socket.remoteAddress).split(',')[0].trim();
+  const ip = ipCliente(req);
   const ahora = Date.now();
   const c = consultas.get(ip);
   if (!c || ahora - c.desde > 60e3) {
-    if (consultas.size > 10_000) consultas.clear(); // evita que el mapa crezca sin fin
+    if (consultas.size >= MAX_IPS) {
+      // borrar solo las vencidas: vaciar todo dejaría a un atacante reiniciar el contador de los demás
+      for (const [k, v] of consultas) if (ahora - v.desde > 60e3) consultas.delete(k);
+      if (consultas.size >= MAX_IPS) return true; // lleno de IPs activas: se rechaza a las nuevas
+    }
     consultas.set(ip, { desde: ahora, n: 1 });
     return false;
   }
@@ -145,10 +156,33 @@ async function estatico(res, pathname) {
 // El análisis completo se reutiliza unos minutos: calcularlo cuesta ~1 s de CPU y pesa ~400 KB
 // (100 KB comprimido). Así muchas visitas a la misma liga no lo recalculan.
 const TTL_ANALISIS = 5 * 60e3;
+const analisisObj = (liga, dias) => memo(`obj:${liga}:${dias}`, TTL_ANALISIS, () => analizar(liga, dias));
 const analisisListo = (liga, dias) => memo(`analisis:${liga}:${dias}`, TTL_ANALISIS, async () => {
-  const json = JSON.stringify(await analizar(liga, dias));
+  const json = JSON.stringify(liga === HOY ? await analizarHoy() : await analisisObj(liga, dias));
   return { json, gzip: zlib.gzipSync(json) };
 });
+
+// "Hoy": los partidos de hoy (hora de Ciudad de México) de todas las ligas, juntos.
+const HOY = 'hoy';
+const diaCDMX = d => new Date(d).toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' }); // AAAA-MM-DD
+
+async function analizarHoy() {
+  const hoy = diaCDMX(Date.now());
+  // 2 días: un partido de la noche en CDMX ya cae en el día siguiente en UTC (ESPN pide fechas UTC)
+  const ligas = await Promise.allSettled(Object.keys(LIGAS).map(l => analisisObj(l, 2)));
+  const ok = ligas.filter(r => r.status === 'fulfilled').map(r => r.value);
+  if (!ok.length) throw new Error('Ninguna liga respondió');
+  const partidos = ok.flatMap(a => a.partidos)
+    .filter(p => diaCDMX(p.fecha) === hoy)
+    .sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+  return {
+    liga: 'Hoy, todas las ligas',
+    media: ok.reduce((s, a) => s + a.media, 0) / ok.length,
+    actualizado: new Date().toISOString(),
+    partidos,
+    parlays: armarParlays(partidos),
+  };
+}
 
 function enviarAnalisis(req, res, { json, gzip }) {
   const comprime = /\bgzip\b/.test(req.headers['accept-encoding'] ?? '');
@@ -173,8 +207,8 @@ http.createServer(async (req, res) => {
     if (url.pathname === '/api/ligas') return enviar(res, 200, LIGAS);
     if (url.pathname === '/api/analisis') {
       const liga = url.searchParams.get('liga');
-      if (!Object.hasOwn(LIGAS, liga)) return enviar(res, 400, { error: 'Liga inválida' });
-      const dias = Math.min(Math.max(parseInt(url.searchParams.get('dias'), 10) || 7, 1), 14);
+      if (liga !== HOY && !Object.hasOwn(LIGAS, liga)) return enviar(res, 400, { error: 'Liga inválida' });
+      const dias = liga === HOY ? 1 : Math.min(Math.max(parseInt(url.searchParams.get('dias'), 10) || 7, 1), 14);
       return enviarAnalisis(req, res, await analisisListo(liga, dias));
     }
     if (url.pathname.startsWith('/api/')) return enviar(res, 404, { error: 'No encontrado' });
@@ -182,6 +216,10 @@ http.createServer(async (req, res) => {
     return estatico(res, url.pathname);
   } catch (e) {
     console.error(e);
-    enviar(res, 502, { error: `No se pudieron obtener los datos: ${e.message}` });
+    // Mensaje genérico (el detalle queda en el log) y 500, no 502: el frontend reintenta los 502-504
+    // pensando que el servidor está despertando, y un error real no debe multiplicarse.
+    enviar(res, 500, { error: 'No se pudieron obtener los datos de las fuentes. Intenta de nuevo en unos minutos.' });
   }
 }).listen(PORT, HOST, () => console.log(`AnalistaDraft en http://${HOST}:${PORT}`));
+
+limpiarDisco().then(n => n && console.log(`Caché: ${n} archivos viejos borrados`), e => console.warn(`No se pudo limpiar la caché: ${e.message}`));

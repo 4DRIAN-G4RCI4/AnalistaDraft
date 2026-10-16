@@ -12,15 +12,16 @@ import { useBoleto } from "./hooks/useBoleto";
 import { useAnalisis, useLigas } from "./hooks/useAnalisis";
 
 const DIAS = [3, 7, 14];
+const HOY = "hoy"; // todos los partidos de hoy de todas las ligas
 
 const parametro = (k) => new URLSearchParams(window.location.search).get(k);
 
 function ligaInicial() {
   if (parametro("liga")) return parametro("liga");
   try {
-    return localStorage.getItem("analista-liga") || "mex.1";
+    return localStorage.getItem("analista-liga") || HOY;
   } catch {
-    return "mex.1";
+    return HOY;
   }
 }
 
@@ -50,7 +51,8 @@ export default function App() {
 
   function abrirPartido(p) {
     scrollLista.current = window.scrollY;
-    window.history.pushState(null, "", `?liga=${encodeURIComponent(liga)}&partido=${encodeURIComponent(p.id)}`);
+    // la liga real del partido (no "hoy"): así el enlace sigue sirviendo otro día
+    window.history.pushState(null, "", `?liga=${encodeURIComponent(p.liga ?? liga)}&partido=${encodeURIComponent(p.id)}`);
     setPartidoId(p.id);
   }
   function volver() {
@@ -79,7 +81,7 @@ export default function App() {
   }
 
   const cargando = (
-    <div className="panel state" aria-busy="true">
+    <div className="panel state" aria-busy="true" role="status">
       <div className="server-wake-spinner" />
       <span className="state-title">{despertando ? "Despertando el servidor…" : "Analizando partidos…"}</span>
       <span className="state-desc">
@@ -97,7 +99,7 @@ export default function App() {
       {partidoId ? (
         partido ? (
           <PartidoPage p={partido} boleto={boleto} onVolver={volver} />
-        ) : error || (data && dias >= 14) ? (
+        ) : error || (data && !loading && dias >= 14) ? (
           <div className="panel state state-error" role="alert">
             <span className="state-title">No se encontró el partido</span>
             <span className="state-desc">{error || "Puede que ya se haya jugado o que no esté en los próximos 14 días."}</span>
@@ -118,13 +120,12 @@ export default function App() {
           </header>
 
           <div className="filters">
-            <div className="news-filter-bar" role="tablist" aria-label="Liga">
-              {Object.entries(ligas).map(([id, l]) => (
+            <div className="news-filter-bar" role="group" aria-label="Liga">
+              {Object.entries({ [HOY]: { nombre: "Hoy" }, ...ligas }).map(([id, l]) => (
                 <button
                   key={id}
                   type="button"
-                  role="tab"
-                  aria-selected={liga === id}
+                  aria-pressed={liga === id}
                   className={`coin-filter-chip ${liga === id ? "active" : ""}`}
                   onClick={() => elegirLiga(id)}
                 >
@@ -137,9 +138,10 @@ export default function App() {
           {/* Tablero: filtro de días arriba de los partidos */}
           <div className="tablero-head">
             <div>
-              <h2 id="partidos-titulo">Próximos partidos</h2>
+              <h2 id="partidos-titulo">{liga === HOY ? "Partidos de hoy" : "Próximos partidos"}</h2>
               <span className="tablero-sub">{data ? `${data.liga} · ${data.partidos.length} partidos` : "Cargando…"}</span>
             </div>
+            {liga !== HOY && (
             <div className="timeframe-group dias" role="group" aria-label="Rango de días">
               {DIAS.map((d) => (
                 <button key={d} type="button" aria-pressed={dias === d} className={`timeframe-btn ${dias === d ? "active" : ""}`} onClick={() => setDias(d)}>
@@ -147,6 +149,7 @@ export default function App() {
                 </button>
               ))}
             </div>
+            )}
           </div>
 
           {error ? (
@@ -165,13 +168,13 @@ export default function App() {
                   {data.partidos.length ? (
                     <div className="match-grid">
                       {data.partidos.map((p) => (
-                        <MatchCard key={p.id} p={p} boleto={boleto} onAbrir={abrirPartido} />
+                        <MatchCard key={p.id} p={p} boleto={boleto} onAbrir={abrirPartido} ligaNombre={liga === HOY ? ligas[p.liga]?.nombre : null} />
                       ))}
                     </div>
                   ) : (
                     <div className="panel state">
-                      <span className="state-title">No hay partidos programados</span>
-                      <span className="state-desc">Prueba con un rango de días mayor.</span>
+                      <span className="state-title">{liga === HOY ? "Hoy no hay partidos en estas ligas" : "No hay partidos programados"}</span>
+                      <span className="state-desc">{liga === HOY ? "Elige una liga para ver sus próximos partidos." : "Prueba con un rango de días mayor."}</span>
                     </div>
                   )}
                 </section>

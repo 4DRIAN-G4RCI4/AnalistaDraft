@@ -169,13 +169,19 @@ test('jugadores: tiros y tiros a puerta esperados según su parte del equipo', a
 test('recomendación: nivel y cuándo apostar', async () => {
   const { recomendacion } = await import('./analisis.js');
   const p = { fecha: new Date(Date.now() + 5 * 3600e3).toISOString(), ajustadoACasas: true };
-  const d = { probable: { prob: 0.8 }, valor: null };
+  const d = { lista: [{ categoria: 'goles', prob: 0.8 }], valor: null };
   assert.deepEqual(recomendacion(p, d, { horas: 5, confirmadas: false, bajas: 0, alertas: [] }).nivel, 'alta');
   assert.equal(recomendacion(p, d, { horas: 5, confirmadas: false, bajas: 0, alertas: [] }).cuando.momento, 'ahora');
   assert.equal(recomendacion(p, d, { horas: 5, confirmadas: false, bajas: 2, alertas: ['x'] }).cuando.momento, 'esperar');
   assert.equal(recomendacion(p, d, { horas: 5, confirmadas: true, bajas: 2, alertas: ['x'] }).cuando.momento, 'ahora');
   assert.equal(recomendacion({ ...p, ajustadoACasas: false }, d, { horas: 5, confirmadas: false, bajas: 0, alertas: [] }).nivel, 'media');
-  assert.equal(recomendacion(p, { probable: null, valor: null }, { horas: 5, confirmadas: false, bajas: 0, alertas: [] }).cuando.momento, 'evitar');
+  assert.equal(recomendacion(p, { lista: [], valor: null }, { horas: 5, confirmadas: false, bajas: 0, alertas: [] }).cuando.momento, 'evitar');
+  // una de corners no es "alta": las casas no la respaldan aunque tenga 80%
+  assert.equal(recomendacion(p, { lista: [{ categoria: 'corners', prob: 0.8 }] }, { horas: 5, confirmadas: false, bajas: 0, alertas: [] }).nivel, 'media');
+  // partido ya empezado: nivel baja y evitar
+  const empezado = recomendacion(p, d, { horas: -0.5, confirmadas: true, bajas: 0, alertas: [] });
+  assert.equal(empezado.nivel, 'baja');
+  assert.equal(empezado.cuando.momento, 'evitar');
 });
 
 test('recomendadas por partido: una por tipo, entre 60% y 85%, con razón', async () => {

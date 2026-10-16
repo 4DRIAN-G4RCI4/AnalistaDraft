@@ -4,7 +4,7 @@ import { pierna } from "../mercados";
 import AddButton from "./AddButton";
 
 export const MOMENTO = {
-  ahora: ["✅", "Apuesta ahora"],
+  ahora: ["✅", "Buen momento"],
   esperar: ["⏳", "Mejor espera"],
   evitar: ["⛔", "Mejor no"],
 };
@@ -36,16 +36,14 @@ function Fila({ p, boleto, onAbrir }) {
         <span className="reco-partido">
           {p.titulo} · {fecha(p.fecha)}
         </span>
+        <span className="visually-hidden">{r.razon}</span>
         <span className={`reco-cuando-mini ${cuando.momento}`}>
           {MOMENTO[cuando.momento][0]} {MOMENTO[cuando.momento][1]}
         </span>
       </button>
       <div className="reco-lado">
         <span className="reco-prob">{pct(r.prob)}</span>
-        <span className="reco-paga">
-          {momio(paga)}
-          {!r.cuota && " justo"}
-        </span>
+        <span className="reco-paga">{r.cuota ? `paga ${momio(paga)}` : `justa ${momio(paga)}`}</span>
         <AddButton boleto={boleto} sel={pierna(p, r.mercado, r.prob, r.cuota)} />
       </div>
     </li>
@@ -105,7 +103,7 @@ export default function Recomendaciones({ partidos, boleto, onAbrir }) {
         </ul>
       )}
       <p className="reco-aviso">
-        Alta = probable, respaldada por lo que pagan las casas y con pocas alertas. <b>Ninguna apuesta es 100% segura.</b>
+        Alta = probable, respaldada por lo que pagan las casas y con pocas alertas. "Justa" = cuota según la probabilidad; tu casa pagará un poco menos. <b>Ninguna apuesta es 100% segura.</b>
       </p>
     </section>
   );

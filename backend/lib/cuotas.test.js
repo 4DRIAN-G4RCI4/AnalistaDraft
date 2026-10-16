@@ -42,3 +42,17 @@ test('ajuste al mercado reproduce lo que pagan las casas', () => {
   const final = combinarGoles({ local: 1.2, visita: 1.2 }, g);
   assert.ok(final.local > 1.2 && final.local < g.local); // queda entre estadística y casas, más cerca de las casas
 });
+
+test('memo: no crece sin límite, tira primero lo vencido y lo más viejo', async () => {
+  const { memo } = await import('./datos.js');
+  const ok = () => Promise.resolve(1);
+  memo('viejo-vencido', 1, ok);
+  await new Promise(r => setTimeout(r, 5));
+  for (let i = 0; i < 3100; i++) memo(`relleno-${i}`, 60e3, ok);
+  let recalculado = false;
+  await memo('viejo-vencido', 60e3, () => { recalculado = true; return ok(); });
+  assert.ok(recalculado); // la vencida se tiró
+  let reusado = true;
+  await memo('relleno-3099', 60e3, () => { reusado = false; return ok(); });
+  assert.ok(reusado); // las recientes siguen
+});

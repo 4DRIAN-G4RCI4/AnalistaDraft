@@ -15,7 +15,8 @@ export default function MejorApuesta({ p, boleto, completa = false }) {
     return <div className="mejor mejor-vacia">Sin una apuesta clara en este partido: mejor dejarlo fuera.</div>;
   }
   const [primera, ...resto] = recomendadas;
-  const paga = (x) => (x.cuota ? `Paga ${momio(x.cuota)}` : `Paga justo ${momio(1 / x.prob)}`);
+  // solo la principal explica que la casa paga menos que la cuota justa; en las demás sería ruido
+const paga = (x, largo) => (x.cuota ? `Paga ${momio(x.cuota)}` : `Cuota justa ${momio(1 / x.prob)}${largo ? " (la casa paga algo menos)" : ""}`);
 
   return (
     <div className="mejor">
@@ -25,7 +26,7 @@ export default function MejorApuesta({ p, boleto, completa = false }) {
             <div>
               <span className="mejor-label">Lo más recomendable · {TIPO[primera.categoria]}</span>
               <span className="mejor-mercado">{primera.nombre}</span>
-              <span className="mejor-meta">{paga(primera)}</span>
+              <span className="mejor-meta">{paga(primera, true)}</span>
             </div>
             <div className="mejor-lado">
               <span className="mejor-prob">{pct(primera.prob)}</span>
@@ -48,7 +49,7 @@ export default function MejorApuesta({ p, boleto, completa = false }) {
         <div className="mejor-linea">
           <span>
             <span className="mejor-tipo">Valor</span> <b>{nombreMercado(valor.mercado, p)}</b> · {pct(valor.prob)} · paga {momio(valor.cuota)}
-            <span className="pct-pill up"> +{(valor.ventaja * 100).toFixed(1)} pts vs casas</span>
+            <span className="pct-pill up"> +{(valor.ventaja * 100).toFixed(1)} pts sobre las casas</span>
           </span>
           <AddButton boleto={boleto} sel={pierna(p, valor.mercado, valor.prob, valor.cuota)} />
         </div>
