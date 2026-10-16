@@ -8,7 +8,9 @@ export default function Equipo({ e }) {
       {linkSeguro(e.logo) ? <img src={e.logo} alt="" width="44" height="44" /> : <div className="team-logo-ph" />}
       <span className="team-name">{e.nombre}</span>
       <span className="team-meta">{e.pos ? `${e.pos}º · ${e.gf}-${e.gc} en ${e.pj} PJ` : "sin tabla"}</span>
-      <span className="team-meta">Plantilla {eur(e.valor)}</span>
+      <span className="team-valor">
+        Plantilla <b>{eur(e.valor)}</b>
+      </span>
       <div className="form-row" aria-label={`Forma reciente: ${e.forma || "sin datos"}`}>
         {[...e.forma].map((c, i) => (
           <span key={i} className={`form-dot ${FORMA[c]?.[1] ?? ""}`}>{FORMA[c]?.[0] ?? c}</span>

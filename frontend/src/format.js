@@ -1,8 +1,9 @@
 export const pct = (p) => `${Math.round(p * 100)}%`;
 
+// Valor de plantilla como dinero: 51_100_000 -> "€51.1 M", 1_170_300_000 -> "€1,170.3 M"
 export function eur(v) {
   if (v == null) return "sin dato";
-  return new Intl.NumberFormat("es-MX", { style: "currency", currency: "EUR", notation: "compact", maximumFractionDigits: 1 }).format(v);
+  return `€${(v / 1e6).toLocaleString("es-MX", { maximumFractionDigits: 1 })} M`; // sin salto entre número y M
 }
 
 export const fecha = (s) =>
