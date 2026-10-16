@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { analizarBoleto, probManual } from "../boleto";
 import { fecha, momio, pct } from "../format";
 import Puntos from "./Puntos";
@@ -23,11 +23,34 @@ export default function BoletoPanel({ boleto, abierto, setAbierto }) {
   const a = analizarBoleto(piernas, { monto: numero(monto) ?? 0 });
   const apuesta = numero(monto);
 
+  const panel = useRef(null);
+  const cerrar = useRef(null);
+  const fab = useRef(null);
+
+  // Diálogo accesible: el foco entra al abrir, no se escapa con Tab y vuelve a donde estaba al cerrar.
   useEffect(() => {
     if (!abierto) return;
-    const alTeclear = (e) => e.key === "Escape" && setAbierto(false);
+    const previo = document.activeElement;
+    requestAnimationFrame(() => cerrar.current?.focus());
+    const alTeclear = (e) => {
+      if (e.key === "Escape") return setAbierto(false);
+      if (e.key !== "Tab") return;
+      const enfocables = panel.current.querySelectorAll("button, input, a[href]");
+      const primero = enfocables[0], ultimo = enfocables[enfocables.length - 1];
+      if (e.shiftKey && document.activeElement === primero) {
+        e.preventDefault();
+        ultimo.focus();
+      } else if (!e.shiftKey && document.activeElement === ultimo) {
+        e.preventDefault();
+        primero.focus();
+      }
+    };
     window.addEventListener("keydown", alTeclear);
-    return () => window.removeEventListener("keydown", alTeclear);
+    return () => {
+      window.removeEventListener("keydown", alTeclear);
+      // el botón flotante se vuelve a montar al cerrar: se le regresa el foco ya montado
+      requestAnimationFrame(() => (fab.current ?? (previo?.isConnected ? previo : null))?.focus());
+    };
   }, [abierto, setAbierto]);
 
   function agregarManual(e) {
@@ -41,16 +64,16 @@ export default function BoletoPanel({ boleto, abierto, setAbierto }) {
   return (
     <>
       {!abierto && piernas.length > 0 && (
-        <button type="button" className="boleto-fab" onClick={() => setAbierto(true)}>
+        <button ref={fab} type="button" className="boleto-fab" onClick={() => setAbierto(true)}>
           <span aria-hidden="true">🧮</span> Simulador ({piernas.length}) · <b>{pct(a.prob)}</b> · cuota {cuota.toFixed(2)}
         </button>
       )}
       {abierto && <div className="drawer-overlay" onClick={() => setAbierto(false)} aria-hidden="true" />}
 
-      <aside className={`boleto-drawer ${abierto ? "open" : ""}`} role="dialog" aria-modal="true" aria-labelledby="boleto-titulo" aria-hidden={!abierto} inert={!abierto}>
+      <aside ref={panel} className={`boleto-drawer ${abierto ? "open" : ""}`} role="dialog" aria-modal="true" aria-labelledby="boleto-titulo" aria-hidden={!abierto} inert={!abierto}>
         <div className="drawer-head">
           <h2 id="boleto-titulo">Simulador de boleto ({piernas.length})</h2>
-          <button type="button" className="leg-remove" onClick={() => setAbierto(false)} aria-label="Cerrar simulador">
+          <button ref={cerrar} type="button" className="leg-remove" onClick={() => setAbierto(false)} aria-label="Cerrar simulador">
             ×
           </button>
         </div>
