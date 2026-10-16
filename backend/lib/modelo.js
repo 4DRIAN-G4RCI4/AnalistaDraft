@@ -83,8 +83,15 @@ function distNB(media, k, max = 80) {
 const masDe = (d, linea) => d.reduce((a, p, k) => (k > linea ? a + p : a), 0);
 
 // Lo esperado de cada equipo: promedio entre lo que genera y lo que su rival suele conceder.
+// Valores típicos por equipo y partido en ligas top. Con solo 5 partidos una racha rara inflaba todo
+// (Tijuana concedió 8 corners y el modelo daba 12.5 corners esperados): se mezcla con lo típico.
+const TIPICO = { corners: 5, tarjetas: 2.2, tirosPuerta: 4, tiros: 12 };
+const PRIOR_PARTIDOS = 6;
+
 export function conteoEsperado(local, visita, cat) {
-  return { local: (local.favor[cat] + visita.contra[cat]) / 2, visita: (visita.favor[cat] + local.contra[cat]) / 2 };
+  const suave = (v, n = 5) => (v * n + TIPICO[cat] * PRIOR_PARTIDOS) / (n + PRIOR_PARTIDOS);
+  const [l, v] = [local, visita].map(e => ({ favor: suave(e.favor[cat], e.n), contra: suave(e.contra[cat], e.n) }));
+  return { local: (l.favor + v.contra) / 2, visita: (v.favor + l.contra) / 2 };
 }
 
 export function mercadosConteo(cat, esperado) {
