@@ -199,15 +199,41 @@ const PESO_CASAS = 0.7;
 
 // Goles esperados que reproducen lo que pagan las casas (1X2 y/o over/under), anclados al modelo
 // para que con un solo mercado (p. ej. solo over/under) el ajuste no se dispare.
+// Solo los mercados que publican las casas (1X2 y más/menos de una línea), sin armar los ~50 de mercados():
+// el ajuste los evalúa ~2000 veces por partido y en Render (0.1 CPU) eso era el cuello de botella.
+function probRapida(gl, gv) {
+  const L = Array.from({ length: MAX_GOLES + 1 }, (_, k) => pois(k, gl));
+  const V = Array.from({ length: MAX_GOLES + 1 }, (_, k) => pois(k, gv));
+  let total = 0, p1 = 0, px = 0;
+  const goles = Array(2 * MAX_GOLES + 1).fill(0);
+  for (let l = 0; l <= MAX_GOLES; l++) {
+    for (let v = 0; v <= MAX_GOLES; v++) {
+      const p = L[l] * V[v];
+      total += p;
+      if (l > v) p1 += p; else if (l === v) px += p;
+      goles[l + v] += p;
+    }
+  }
+  const mas = linea => goles.reduce((a, p, k) => (k > linea ? a + p : a), 0) / total;
+  return m => {
+    if (m === 'Local') return p1 / total;
+    if (m === 'Empate') return px / total;
+    if (m === 'Visita') return 1 - (p1 + px) / total;
+    const linea = Number(m.match(/de ([\d.]+) goles$/)?.[1]);
+    return m.startsWith('Más') ? mas(linea) : 1 - mas(linea);
+  };
+}
+
 export function ajustarAMercado(mercado, base) {
   const objetivos = Object.entries(mercado).map(([m, c]) => [m, c.prob]);
   if (!objetivos.length) return null;
   const error = (gl, gv) => {
-    const { probs } = mercados(gl, gv);
-    return objetivos.reduce((a, [m, p]) => a + (probs[m] - p) ** 2, 0) + 1e-4 * ((gl - base.local) ** 2 + (gv - base.visita) ** 2);
+    const prob = probRapida(gl, gv);
+    return objetivos.reduce((a, [m, p]) => a + (prob(m) - p) ** 2, 0) + 1e-4 * ((gl - base.local) ** 2 + (gv - base.visita) ** 2);
   };
   let mejor = { gl: base.local, gv: base.visita, e: error(base.local, base.visita) };
-  for (const [paso, radio, centro] of [[0.1, 2, { gl: 2.1, gv: 2.1 }], [0.01, 0.1, null]]) {
+  // búsqueda gruesa y luego afinando alrededor del mejor punto (~650 evaluaciones en vez de ~2100)
+  for (const [paso, radio, centro] of [[0.2, 2, { gl: 2.1, gv: 2.1 }], [0.04, 0.2, null], [0.01, 0.04, null]]) {
     const c = centro ?? mejor;
     for (let gl = Math.max(0.1, c.gl - radio); gl <= c.gl + radio; gl += paso) {
       for (let gv = Math.max(0.1, c.gv - radio); gv <= c.gv + radio; gv += paso) {

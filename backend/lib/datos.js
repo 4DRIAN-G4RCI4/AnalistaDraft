@@ -67,7 +67,7 @@ export async function limpiarDisco() {
 const TTL = { tabla: 2 * 3600e3, partidos: 30 * 60e3, noticias: 30 * 60e3 };
 
 // Máximo de peticiones simultáneas: la primera carga de estadísticas pide ~100 partidos.
-const MAX_SIMULTANEAS = 6;
+const MAX_SIMULTANEAS = 4; // con 6 ESPN empezaba a responder 403
 let activas = 0;
 const fila = [];
 async function turno(fn) {
@@ -83,17 +83,24 @@ async function turno(fn) {
 
 // Caché en disco: sobrevive reinicios del servidor. Si la fuente falla, sirve la última copia guardada.
 // nombre: identifica la petición en archivo y errores sin exponer secretos de la URL (API keys).
-export async function json(url, ttl, nombre = url.replace(/^https:\/\/[^/]+\//, '')) {
+// transformar: se aplica antes de guardar, para no cargar en memoria ni en disco lo que no se usa.
+export async function json(url, ttl, nombre = url.replace(/^https:\/\/[^/]+\//, ''), transformar = x => x) {
   const dir = new URL('fuentes/', CACHE_DIR);
   const archivo = new URL(nombre.replace(/[^a-z0-9.]+/gi, '_') + '.json', dir);
   const edad = await stat(archivo).then(s => Date.now() - s.mtimeMs, () => Infinity);
   if (edad < ttl) return JSON.parse(await readFile(archivo, 'utf8'));
   try {
-    const r = await turno(() => fetch(url, { signal: AbortSignal.timeout(15000) }));
+    let r;
+    // ESPN responde 403/429 a ráfagas de consultas y luego vuelve a responder: se reintenta con espera
+    for (const espera of [1500, 3000, null]) {
+      r = await turno(() => fetch(url, { signal: AbortSignal.timeout(15000) }));
+      if (![403, 429].includes(r.status) || espera === null) break;
+      await new Promise(ok => setTimeout(ok, espera));
+    }
     if (!r.ok) throw new Error(`${r.status} en ${nombre}`);
     const restantes = r.headers.get('x-requests-remaining');
     if (restantes) console.log(`The Odds API: quedan ${restantes} créditos este mes`);
-    const j = await r.json();
+    const j = transformar(await r.json());
     await mkdir(dir, { recursive: true });
     await writeFile(archivo, JSON.stringify(j));
     return j;
@@ -151,11 +158,49 @@ export const noticias = liga => memo(`noticias:${liga}`, TTL.noticias, async () 
 });
 
 // shortcut: parser CSV de una línea por registro; si el dataset trae saltos de línea dentro de comillas, usar un parser real.
-function csv(texto) {
-  const [cab, ...filas] = texto.split('\n').filter(Boolean);
-  const campos = l => [...l.matchAll(/("(?:[^"]|"")*"|[^,]*)(?:,|$)/g)].slice(0, -1).map(m => m[1].replace(/^"|"$/g, '').replaceAll('""', '"'));
-  const k = campos(cab);
-  return filas.map(f => Object.fromEntries(campos(f).map((v, i) => [k[i], v])));
+// columnas: solo esas se extraen (el CSV de jugadores tiene 26 y 50 mil filas; en Render, con 0.1 CPU,
+// armar todos los campos tardaba ~20 s cada vez que el servidor despertaba).
+export function csv(texto, columnas) {
+  const fin = texto.indexOf('\n');
+  const cab = campos(texto.slice(0, fin));
+  const idx = (columnas ?? cab).map(c => cab.indexOf(c));
+  const max = Math.max(...idx);
+  const filas = [];
+  for (let ini = fin + 1; ini < texto.length;) {
+    let corte = texto.indexOf('\n', ini);
+    if (corte === -1) corte = texto.length;
+    if (corte > ini) {
+      const v = campos(texto.slice(ini, corte), max);
+      filas.push(Object.fromEntries((columnas ?? cab).map((c, i) => [c, v[idx[i]] ?? ''])));
+    }
+    ini = corte + 1;
+  }
+  return filas;
+}
+
+// Separa una línea CSV en campos (respeta comillas y "" escapadas) hasta el campo `hasta`.
+function campos(linea, hasta = Infinity) {
+  const out = [];
+  let i = 0;
+  while (i <= linea.length && out.length <= hasta) {
+    if (linea[i] === '"') {
+      let j = i + 1, v = '';
+      for (;;) {
+        const q = linea.indexOf('"', j);
+        if (q === -1) { v += linea.slice(j); j = linea.length; break; }
+        v += linea.slice(j, q);
+        if (linea[q + 1] === '"') { v += '"'; j = q + 2; } else { j = q + 1; break; }
+      }
+      out.push(v);
+      i = j + 1; // salta la coma
+    } else {
+      let coma = linea.indexOf(',', i);
+      if (coma === -1) coma = linea.length;
+      out.push(linea.slice(i, coma).replace(/\r$/, ''));
+      i = coma + 1;
+    }
+  }
+  return out;
 }
 
 async function descargarTM(archivo) {
@@ -176,7 +221,7 @@ async function descargarTM(archivo) {
 
 // { clubId: { nombre, valor, jugadores } } por competencia de Transfermarkt
 const valoresTM = () => memo('tm', 24 * 3600e3, async () => {
-  const jugadores = csv(await descargarTM('players.csv.gz'));
+  const jugadores = csv(await descargarTM('players.csv.gz'), ['current_club_id', 'current_club_domestic_competition_id', 'current_club_name', 'last_season', 'market_value_in_eur']);
   const ultima = {};
   for (const j of jugadores) ultima[j.current_club_domestic_competition_id] = Math.max(ultima[j.current_club_domestic_competition_id] ?? 0, +j.last_season);
   const clubes = {};
@@ -187,7 +232,7 @@ const valoresTM = () => memo('tm', 24 * 3600e3, async () => {
     c.valor += +j.market_value_in_eur || 0;
     c.jugadores++;
   }
-  for (const c of csv(await descargarTM('clubs.csv.gz'))) {
+  for (const c of csv(await descargarTM('clubs.csv.gz'), ['club_id', 'domestic_competition_id', 'name'])) {
     const club = clubes[c.domestic_competition_id]?.[c.club_id];
     if (club) club.nombre = c.name; // nombre corto ("Arsenal FC") empata mejor con ESPN
   }
