@@ -2890,3 +2890,122 @@ body {
   border-radius: var(--radius-full);
   padding: 1px 8px;
 }
+
+.vivo-sug {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px var(--sp-3);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.vivo-razon {
+  flex-basis: 100%;
+  color: var(--text-dim);
+  font-size: 0.75rem;
+}
+
+.vivo-pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 4px 3px 10px;
+  border-radius: var(--radius-full);
+  background: var(--up-dim);
+  color: var(--up);
+}
+
+.vivo-pick b {
+  color: var(--text);
+}
+
+/* ---------- quién puede ganar ---------- */
+
+.ganador {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+}
+
+.ganador-titulo {
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.ganador-barra {
+  display: flex;
+  height: 8px;
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  background: var(--surface-raised);
+}
+
+.ganador-barra .local,
+.ganador-leyenda .local {
+  background: var(--accent);
+}
+
+.ganador-barra .empate {
+  background: var(--text-faint);
+}
+
+.ganador-barra .visita {
+  background: #9b6bff;
+}
+
+.ganador-leyenda {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-dim);
+}
+
+.ganador-leyenda span {
+  background: none !important;
+}
+
+/* ---------- estadísticas en vivo ---------- */
+
+.vivo-stats {
+  flex-basis: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.vivo-stats td,
+.vivo-stats th {
+  padding: 3px 6px;
+  text-align: center;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.vivo-stats td {
+  font-family: var(--font-mono);
+  font-weight: 800;
+  width: 30%;
+}
+
+.vivo-stats tbody th {
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.vivo-eventos {
+  flex-basis: 100%;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.vivo-eventos span {
+  font-family: var(--font-mono);
+  color: var(--text-faint);
+  margin-right: 4px;
+}
