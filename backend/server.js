@@ -3,7 +3,7 @@ import path from 'node:path';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import zlib from 'node:zlib';
-import { LIGAS, tabla, partidos, noticias, valorPlantilla, memo, limpiarDisco, enVivo } from './lib/datos.js';
+import { LIGAS, tabla, partidos, noticias, valorPlantilla, memo, limpiarDisco, enVivo, buscarPartido } from './lib/datos.js';
 import { golesEsperados, mercados, decimal, sinMargen, armarParlays, ajustarAMercado, combinarGoles, conteoEsperado, mercadosConteo, fraccion1T, mercadosTiempos, probGoleadores, mercadosVivo } from './lib/modelo.js';
 import { previa, estadisticasEquipo, CATEGORIAS } from './lib/stats.js';
 import { eventosLiga, buscarEvento, consenso } from './lib/cuotas.js';
@@ -60,13 +60,22 @@ async function previaCompleta(liga, p) {
   }
 }
 
-async function analizar(liga, dias) {
-  const [tbl, prox, news, eventos] = await Promise.all([tabla(liga), partidos(liga, dias), noticias(liga), eventosLiga(liga)]);
+// Lo común de una liga que necesita el análisis de cada partido: tabla, promedio de goles, noticias y cuotas.
+async function contextoLiga(liga) {
+  const [tbl, news, eventos] = await Promise.all([tabla(liga), noticias(liga), eventosLiga(liga)]);
   const pj = tbl.reduce((a, t) => a + t.pj, 0);
-  const media = pj ? tbl.reduce((a, t) => a + t.gf, 0) / pj : MEDIA_DEFAULT;
-  const vacio = { pj: 0, gf: 0, gc: 0 };
+  return { tbl, news, eventos, media: pj ? tbl.reduce((a, t) => a + t.gf, 0) / pj : MEDIA_DEFAULT };
+}
 
-  const analizados = await Promise.all(prox.map(async p => {
+async function analizar(liga, dias) {
+  const [ctx, prox] = await Promise.all([contextoLiga(liga), partidos(liga, dias)]);
+  const analizados = await Promise.all(prox.map(p => analizarPartido(liga, p, ctx)));
+  return { liga: LIGAS[liga].nombre, media: ctx.media, actualizado: new Date().toISOString(), partidos: analizados, parlays: armarParlays(analizados) };
+}
+
+// Análisis completo de un partido (también sirve para reconstruir el prepartido de uno que ya empezó).
+async function analizarPartido(liga, p, { tbl, news, eventos, media }) {
+    const vacio = { pj: 0, gf: 0, gc: 0 };
     const tl = tbl.find(t => t.id === p.local.id) ?? vacio;
     const tv = tbl.find(t => t.id === p.visita.id) ?? vacio;
     const [vl, vv] = await Promise.all([valorPlantilla(liga, p.local.nombre), valorPlantilla(liga, p.visita.nombre)]).catch(() => [null, null]);
@@ -114,9 +123,6 @@ async function analizar(liga, dias) {
       goleadores,
     };
     return { ...analizado, resumen: resumenPartido(analizado) };
-  }));
-
-  return { liga: LIGAS[liga].nombre, media, actualizado: new Date().toISOString(), partidos: analizados, parlays: armarParlays(analizados) };
 }
 
 // Página compilada (npm run build) para compartir: todo sale por este mismo puerto.
@@ -264,6 +270,24 @@ http.createServer(async (req, res) => {
       const liga = url.searchParams.get('liga'), evento = url.searchParams.get('evento') ?? '';
       if (!Object.hasOwn(LIGAS, liga) || !/^\d{1,12}$/.test(evento)) return enviar(res, 400, { error: 'Partido inválido' });
       return enviar(res, 200, (await previa(liga, evento)).alineaciones);
+    }
+    if (url.pathname === '/api/partido' || url.pathname === '/api/prepartido') {
+      const liga = url.searchParams.get('liga'), evento = url.searchParams.get('evento') ?? '';
+      if (!Object.hasOwn(LIGAS, liga) || !/^\d{1,12}$/.test(evento)) return enviar(res, 400, { error: 'Partido inválido' });
+      if (url.pathname === '/api/partido') {
+        // marcador y estadísticas del momento, en cualquier estado (en juego o terminado)
+        const r = await memo(`partido:${evento}`, 60e3, () => buscarPartido(liga, evento));
+        if (!r) return enviar(res, 404, { error: 'No se encontró el partido' });
+        const vivo = analizarVivo(r.vivo);
+        return enviar(res, 200, { ...vivo, estado: r.estado, sugerencias: r.estado === 'in' ? vivo.sugerencias : [] });
+      }
+      // prepartido: el mismo análisis de antes del inicio, con los momios y datos previos que ESPN conserva
+      const pre = await memo(`prepartido:${evento}`, 30 * 60e3, async () => {
+        const r = await buscarPartido(liga, evento);
+        if (!r) return null;
+        return analizarPartido(liga, r.partido, await contextoLiga(liga));
+      });
+      return pre ? enviar(res, 200, pre) : enviar(res, 404, { error: 'No se encontró el partido' });
     }
     if (url.pathname === '/api/envivo') {
       const r = await Promise.allSettled(Object.keys(LIGAS).map(enVivo)); // una liga caída no tumba las demás

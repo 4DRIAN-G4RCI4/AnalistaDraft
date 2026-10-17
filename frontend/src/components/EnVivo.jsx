@@ -40,9 +40,71 @@ const ICONO = { gol: "⚽", autogol: "⚽ (autogol)", amarilla: "🟨", roja: "�
 
 const CADA = 60e3;
 
+// Estadísticas, goles y tarjetas, quién puede ganar, alineaciones y sugerencias de un partido en juego.
+export function VivoDetalle({ p, boleto }) {
+  return (
+    <>
+      <table className="vivo-stats">
+        <thead>
+          <tr>
+            <th>{p.local.nombre}</th>
+            <th />
+            <th>{p.visita.nombre}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {[
+            ["corners", "Tiros de esquina"],
+            ["tirosPuerta", "Tiros a puerta"],
+            ["tiros", "Tiros totales"],
+          ].map(([k, n]) => (
+            <tr key={k}>
+              <td>{p.local[k]}</td>
+              <th scope="row">{n}</th>
+              <td>{p.visita[k]}</td>
+            </tr>
+          ))}
+          <tr>
+            <td>{p.eventos.filter((e) => e.local && e.tipo !== "gol" && e.tipo !== "autogol").length}</td>
+            <th scope="row">Tarjetas (total {p.eventos.filter((e) => e.tipo === "amarilla" || e.tipo === "roja").length})</th>
+            <td>{p.eventos.filter((e) => !e.local && e.tipo !== "gol" && e.tipo !== "autogol").length}</td>
+          </tr>
+        </tbody>
+      </table>
+      {p.eventos.length > 0 && (
+        <ul className="vivo-eventos">
+          {p.eventos.map((e, i) => (
+            <li key={i}>
+              <span>{e.minuto}</span> {ICONO[e.tipo]} <b>{e.jugador || "—"}</b> ({e.local ? p.local.nombre : p.visita.nombre})
+            </li>
+          ))}
+        </ul>
+      )}
+      {p.ganador && <Ganador local={p.local.nombre} visita={p.visita.nombre} prob={p.ganador} />}
+      <VerAlineaciones p={p} />
+      {p.sugerencias?.length > 0 && (
+        <div className="vivo-sug">
+          <span className="vivo-razon">{p.razon}</span>
+          {p.sugerencias.map((s) => (
+            <span key={s.mercado} className="vivo-pick">
+              <b>{s.mercado}</b> {pct(s.prob)} · justa {momio(1 / s.prob)}
+              {boleto && (
+                <AddButton
+                  boleto={boleto}
+                  sel={{ partidoId: `vivo-${p.id}`, partido: `${p.local.nombre} vs ${p.visita.nombre} (en vivo, ${p.minuto})`, mercado: s.mercado, prob: s.prob, cuota: null }}
+                />
+              )}
+            </span>
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
 // Franja con los partidos que se están jugando ahora: marcador y minuto, se actualiza cada minuto.
 // soloVivo: vista "En vivo" (todas las ligas y mensaje si no hay partidos en juego)
-export default function EnVivo({ liga, ligas, boleto, soloVivo = false }) {
+export default function EnVivo({ liga, ligas, boleto, soloVivo = false, onAbrir }) {
   const [partidos, setPartidos] = useState([]);
   const [cargado, setCargado] = useState(false);
   const [abiertos, setAbiertos] = useState({}); // id -> true/false (estadísticas desplegadas)
@@ -129,66 +191,19 @@ export default function EnVivo({ liga, ligas, boleto, soloVivo = false }) {
             </b>
             <Equipo e={p.visita} />
             <span className="vivo-minuto">{p.minuto}</span>
+            {onAbrir && (
+              <button type="button" className="btn vivo-abrir" onClick={() => onAbrir(p)}>
+                Abrir partido →
+              </button>
+            )}
             <button type="button" className="news-toggle vivo-desplegar" onClick={() => alternar(p)} aria-expanded={abierto(p)}>
               <span>{abierto(p) ? "Ocultar estadísticas" : "Ver estadísticas, sugerencias y alineaciones"}</span>
               <span aria-hidden="true">{abierto(p) ? "▴" : "▾"}</span>
             </button>
             {abierto(p) && (
             <>
-            <table className="vivo-stats">
-              <thead>
-                <tr>
-                  <th>{p.local.nombre}</th>
-                  <th />
-                  <th>{p.visita.nombre}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {[
-                  ["corners", "Tiros de esquina"],
-                  ["tirosPuerta", "Tiros a puerta"],
-                  ["tiros", "Tiros totales"],
-                ].map(([k, n]) => (
-                  <tr key={k}>
-                    <td>{p.local[k]}</td>
-                    <th scope="row">{n}</th>
-                    <td>{p.visita[k]}</td>
-                  </tr>
-                ))}
-                <tr>
-                  <td>{p.eventos.filter((e) => e.local && e.tipo !== "gol" && e.tipo !== "autogol").length}</td>
-                  <th scope="row">Tarjetas (total {p.eventos.filter((e) => e.tipo === "amarilla" || e.tipo === "roja").length})</th>
-                  <td>{p.eventos.filter((e) => !e.local && e.tipo !== "gol" && e.tipo !== "autogol").length}</td>
-                </tr>
-              </tbody>
-            </table>
-            {p.eventos.length > 0 && (
-              <ul className="vivo-eventos">
-                {p.eventos.map((e, i) => (
-                  <li key={i}>
-                    <span>{e.minuto}</span> {ICONO[e.tipo]} <b>{e.jugador || "—"}</b> ({e.local ? p.local.nombre : p.visita.nombre})
-                  </li>
-                ))}
-              </ul>
-            )}
-            {p.ganador && <Ganador local={p.local.nombre} visita={p.visita.nombre} prob={p.ganador} />}
-            <VerAlineaciones p={p} />
-            {p.sugerencias?.length > 0 && (
-              <div className="vivo-sug">
-                <span className="vivo-razon">{p.razon}</span>
-                {p.sugerencias.map((s) => (
-                  <span key={s.mercado} className="vivo-pick">
-                    <b>{s.mercado}</b> {pct(s.prob)} · justa {momio(1 / s.prob)}
-                    {boleto && (
-                      <AddButton
-                        boleto={boleto}
-                        sel={{ partidoId: `vivo-${p.id}`, partido: `${p.local.nombre} vs ${p.visita.nombre} (en vivo, ${p.minuto})`, mercado: s.mercado, prob: s.prob, cuota: null }}
-                      />
-                    )}
-                  </span>
-                ))}
-              </div>
-            )}
+            <VivoDetalle p={p} boleto={boleto} />
+
             </>
             )}
           </li>
