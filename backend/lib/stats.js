@@ -19,7 +19,7 @@ const compacto = s => ({
     })),
   })),
   rosters: (s.rosters ?? []).map(r => ({
-    team: { id: r.team?.id },
+    team: { id: r.team?.id }, formation: r.formation,
     roster: (r.roster ?? []).map(j => ({
       athlete: { id: j.athlete?.id, displayName: j.athlete?.displayName }, position: { abbreviation: j.position?.abbreviation },
       starter: j.starter, subbedIn: j.subbedIn, stats: soloStats(j.stats),
@@ -30,7 +30,7 @@ const compacto = s => ({
 });
 
 const resumen = (liga, id, ttl) =>
-  json(`${ESPN}/site/v2/sports/soccer/${liga}/summary?event=${id}`, ttl, `resumen_v2_${liga}_${id}`, compacto);
+  json(`${ESPN}/site/v2/sports/soccer/${liga}/summary?event=${id}`, ttl, `resumen_v3_${liga}_${id}`, compacto);
 const valor = (stats, nombre) => Number(stats?.find(s => s.name === nombre)?.displayValue ?? stats?.find(s => s.name === nombre)?.value) || 0;
 
 export async function previa(liga, eventoId) {
@@ -41,6 +41,11 @@ export async function previa(liga, eventoId) {
     ultimos: Object.fromEntries((s.lastFiveGames ?? []).map(g => [String(g.team?.id), g.events ?? []])),
     alineacion: Object.fromEntries(Object.entries(titulares).map(([id, t]) => [id, t.length > 0])),
     titulares,
+    // para mostrar: titulares y suplentes con nombre y posición (vacío hasta ~1 h antes)
+    alineaciones: Object.fromEntries((s.rosters ?? []).map(r => [String(r.team?.id), {
+      formacion: r.formation ?? null,
+      jugadores: (r.roster ?? []).map(j => ({ nombre: j.athlete?.displayName ?? '', pos: j.position?.abbreviation ?? '', titular: Boolean(j.starter) })),
+    }])),
   };
 }
 

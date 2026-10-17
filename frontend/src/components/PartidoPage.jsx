@@ -7,6 +7,7 @@ import MejorApuesta from "./MejorApuesta";
 import AddButton from "./AddButton";
 import Historial from "./Historial";
 import Ganador from "./Ganador";
+import Alineaciones from "./Alineaciones";
 
 const PRINCIPALES = [
   "Local", "Empate", "Visita", "Local o empate", "Visita o empate", "Hay ganador (sin empate)",
@@ -341,6 +342,14 @@ export default function PartidoPage({ p, boleto, onVolver }) {
 
         </div>
       </div>
+
+      <section className="panel">
+        <div className="panel-head">
+          <h2>Alineaciones</h2>
+          <span className="panel-sub">{confirmadas ? "confirmadas" : "se publican ~1 h antes"}</span>
+        </div>
+        <Alineaciones p={p} />
+      </section>
 
       <section className="panel">
         <div className="panel-head">
