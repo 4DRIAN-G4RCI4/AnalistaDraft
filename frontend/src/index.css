@@ -3009,3 +3009,17 @@ body {
   color: var(--text-faint);
   margin-right: 4px;
 }
+
+/* "Qué se habría ganado" a todo el ancho: los dos equipos lado a lado */
+.historial-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+@media (min-width: 900px) {
+  .historial {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--sp-8);
+  }
+}
