@@ -11,6 +11,14 @@ const DEPORTE = {
   'ger.1': 'soccer_germany_bundesliga',
   'fra.1': 'soccer_france_ligue_one',
   'mex.1': 'soccer_mexico_ligamx',
+  'uefa.champions': 'soccer_uefa_champs_league',
+  'uefa.europa': 'soccer_uefa_europa_league',
+  'uefa.europa.conf': 'soccer_uefa_europa_conference_league',
+  'ned.1': 'soccer_netherlands_eredivisie',
+  'ksa.1': 'soccer_saudi_arabia_pro_league',
+  'usa.1': 'soccer_usa_mls',
+  'arg.1': 'soccer_argentina_primera_division',
+  'bra.1': 'soccer_brazil_campeonato',
 };
 const TTL = (Number(process.env.ODDS_TTL_HORAS) || 12) * 3600e3;
 const REGIONES = process.env.ODDS_REGIONES || 'us'; // us = DraftKings, FanDuel, BetMGM…; eu/uk = bet365, Pinnacle…

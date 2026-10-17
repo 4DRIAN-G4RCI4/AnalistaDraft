@@ -13,6 +13,15 @@ const ZONA = {
   Relegation: "Descenso",
   Relegated: "Descenso",
   "Relegation playoff": "Promoción de descenso",
+  "Qualifies for round of 16": "Octavos de final",
+  "Knockout phase playoffs - seeded": "Playoff (cabeza de serie)",
+  "Knockout phase playoffs - unseeded": "Playoff",
+  Eliminated: "Eliminado",
+  "Qualifies for MLS Cup Playoffs - Round One Best-of-3 series": "Playoffs de MLS",
+  "Qualifies for MLS Cup Playoffs - Wild Card Matches": "Wild card de MLS",
+  "Copa Libertadores": "Copa Libertadores",
+  "Copa Libertadores qualifiers": "Previa de Libertadores",
+  "Copa Sudamericana": "Copa Sudamericana",
 };
 const zonaLigaMX = (pos) =>
   pos <= 6 ? { texto: "Liguilla directa", color: "#81D6AC" } : pos <= 10 ? { texto: "Play-in", color: "#B3D4FC" } : null;
@@ -35,6 +44,8 @@ export default function Tablas({ ligas, ligaInicial, onVolver }) {
   const filas = tablas?.[liga] ?? [];
   const zonaDe = (t) => (liga === "mex.1" ? zonaLigaMX(t.pos) : t.zona && { texto: ZONA[t.zona.texto] ?? t.zona.texto, color: t.zona.color });
   const leyenda = [...new Map(filas.map(zonaDe).filter(Boolean).map((z) => [z.texto, z])).values()];
+  const grupos = [...new Set(filas.map((t) => t.grupo ?? null))]; // MLS y Argentina: dos tablas
+  const GRUPO = { "Eastern Conference": "Conferencia Este", "Western Conference": "Conferencia Oeste", "Group A": "Grupo A", "Group B": "Grupo B" };
 
   return (
     <div className="partido-page">
@@ -62,9 +73,12 @@ export default function Tablas({ ligas, ligaInicial, onVolver }) {
           <p className="muted">Sin tabla para esta liga ahora.</p>
         ) : (
           <>
+            {grupos.map((g) => (
+            <div key={g ?? "unica"} className="tabla-grupo">
+            {g && <h3 className="forma-titulo">{GRUPO[g] ?? g}</h3>}
             <div className="table-wrap">
               <table className="tabla-pos">
-                <caption className="visually-hidden">Tabla de posiciones de {ligas[liga].nombre}</caption>
+                <caption className="visually-hidden">Tabla de posiciones de {ligas[liga].nombre}{g ? ` · ${GRUPO[g] ?? g}` : ""}</caption>
                 <thead>
                   <tr>
                     <th>#</th>
@@ -80,7 +94,7 @@ export default function Tablas({ ligas, ligaInicial, onVolver }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {filas.map((t) => {
+                  {filas.filter((t) => (t.grupo ?? null) === g).map((t) => {
                     const z = zonaDe(t);
                     return (
                       <tr key={t.id} style={z ? { "--zona": z.color } : undefined} className={z ? "con-zona" : ""}>
@@ -110,6 +124,8 @@ export default function Tablas({ ligas, ligaInicial, onVolver }) {
                 </tbody>
               </table>
             </div>
+            </div>
+            ))}
             {leyenda.length > 0 && (
               <ul className="tabla-leyenda">
                 {leyenda.map((z) => (
