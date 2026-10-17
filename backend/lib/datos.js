@@ -120,7 +120,8 @@ export const tabla = liga => memo(`tabla:${liga}`, TTL.tabla, async () => {
 });
 
 export const partidos = (liga, dias) => memo(`partidos:${liga}:${dias}`, TTL.partidos, async () => {
-  const fechas = Array.from({ length: dias }, (_, i) => new Date(Date.now() + i * 864e5).toISOString().slice(0, 10).replaceAll('-', ''));
+  // desde ayer: ESPN agrupa por día de EE. UU. y de noche en México ya es el día siguiente en UTC (los ya jugados se filtran abajo)
+  const fechas = Array.from({ length: dias + 1 }, (_, i) => new Date(Date.now() + (i - 1) * 864e5).toISOString().slice(0, 10).replaceAll('-', ''));
   const dias_ = await Promise.all(fechas.map(f => json(`${ESPN}/site/v2/sports/soccer/${liga}/scoreboard?dates=${f}`, TTL.partidos)));
   const vistos = new Set();
   return dias_.flatMap(d => d.events)
