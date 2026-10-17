@@ -7,6 +7,7 @@ import MatchCard from "./components/MatchCard";
 import PartidoPage from "./components/PartidoPage";
 import Recomendaciones from "./components/Recomendaciones";
 import EnVivo from "./components/EnVivo";
+import Tablas from "./components/Tablas";
 import { nombreMercado } from "./mercados";
 import BoletoPanel from "./components/BoletoPanel";
 import { useBoleto } from "./hooks/useBoleto";
@@ -36,9 +37,13 @@ export default function App() {
 
   // Página de un partido: ?liga=…&partido=… (sirve el botón Atrás y los enlaces directos)
   const [partidoId, setPartidoId] = useState(() => parametro("partido"));
+  const [verTablas, setVerTablas] = useState(() => parametro("vista") === "tablas"); // ?vista=tablas
   const scrollLista = useRef(0);
   useEffect(() => {
-    const alNavegar = () => setPartidoId(parametro("partido"));
+    const alNavegar = () => {
+      setPartidoId(parametro("partido"));
+      setVerTablas(parametro("vista") === "tablas");
+    };
     window.addEventListener("popstate", alNavegar);
     return () => window.removeEventListener("popstate", alNavegar);
   }, []);
@@ -47,8 +52,8 @@ export default function App() {
     if (partidoId && data && !partido && dias < 14) setDias(14); // enlace a un partido más lejano
   }, [partidoId, data, partido, dias]);
   useEffect(() => {
-    window.scrollTo(0, partidoId ? 0 : scrollLista.current);
-  }, [partidoId]);
+    window.scrollTo(0, partidoId || verTablas ? 0 : scrollLista.current);
+  }, [partidoId, verTablas]);
 
   function abrirPartido(p) {
     scrollLista.current = window.scrollY;
@@ -59,6 +64,13 @@ export default function App() {
   function volver() {
     window.history.pushState(null, "", window.location.pathname);
     setPartidoId(null);
+    setVerTablas(false);
+  }
+  function abrirTablas() {
+    if (!partidoId && !verTablas) scrollLista.current = window.scrollY;
+    window.history.pushState(null, "", "?vista=tablas");
+    setPartidoId(null);
+    setVerTablas(true);
   }
 
   // Cada selección del parlay con la fecha del partido y el nombre del equipo en vez de "Local"/"Visita".
@@ -95,9 +107,11 @@ export default function App() {
 
   return (
     <div className="app">
-      <NavBar enBoleto={boleto.piernas.length} base={partidoId ? "/" : ""} onBoleto={() => setBoletoAbierto(true)} />
+      <NavBar enBoleto={boleto.piernas.length} base={partidoId || verTablas ? "/" : ""} onBoleto={() => setBoletoAbierto(true)} onTablas={abrirTablas} />
 
-      {partidoId ? (
+      {verTablas ? (
+        <Tablas ligas={ligas} ligaInicial={liga} onVolver={volver} />
+      ) : partidoId ? (
         partido ? (
           <PartidoPage p={partido} boleto={boleto} onVolver={volver} />
         ) : error || (data && !loading && dias >= 14) ? (
