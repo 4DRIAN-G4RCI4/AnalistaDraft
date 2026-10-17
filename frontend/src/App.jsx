@@ -9,6 +9,7 @@ import Recomendaciones from "./components/Recomendaciones";
 import EnVivo from "./components/EnVivo";
 import Tablas from "./components/Tablas";
 import VivoPage from "./components/VivoPage";
+import Aciertos from "./components/Aciertos";
 import { nombreMercado } from "./mercados";
 import BoletoPanel from "./components/BoletoPanel";
 import { useBoleto } from "./hooks/useBoleto";
@@ -34,19 +35,19 @@ export default function App() {
   const [liga, setLiga] = useState(ligaInicial);
   const [dias, setDias] = useState(7);
   // "En vivo" no tiene análisis propio: se piden los de Hoy (ya en caché) para no dejar la página vacía al volver
-  const { data, loading, error, despertando, refrescar } = useAnalisis(liga === VIVO ? HOY : liga, dias);
+  const { data, loading, error, despertando, actualizando, refrescar } = useAnalisis(liga === VIVO ? HOY : liga, dias);
   const boleto = useBoleto();
   const [boletoAbierto, setBoletoAbierto] = useState(false);
 
   // Página de un partido: ?liga=…&partido=… (sirve el botón Atrás y los enlaces directos)
   const [partidoId, setPartidoId] = useState(() => parametro("partido"));
-  const [verTablas, setVerTablas] = useState(() => parametro("vista") === "tablas"); // ?vista=tablas
+  const [vista, setVista] = useState(() => parametro("vista")); // ?vista=tablas | aciertos
   const [vivoId, setVivoId] = useState(() => parametro("vivo")); // ?liga=…&vivo=… página de un partido en juego
   const scrollLista = useRef(0);
   useEffect(() => {
     const alNavegar = () => {
       setPartidoId(parametro("partido"));
-      setVerTablas(parametro("vista") === "tablas");
+      setVista(parametro("vista"));
       setVivoId(parametro("vivo"));
     };
     window.addEventListener("popstate", alNavegar);
@@ -57,8 +58,8 @@ export default function App() {
     if (partidoId && data && !partido && dias < 14) setDias(14); // enlace a un partido más lejano
   }, [partidoId, data, partido, dias]);
   useEffect(() => {
-    window.scrollTo(0, partidoId || verTablas || vivoId ? 0 : scrollLista.current);
-  }, [partidoId, verTablas, vivoId]);
+    window.scrollTo(0, partidoId || vista || vivoId ? 0 : scrollLista.current);
+  }, [partidoId, vista, vivoId]);
 
   function abrirPartido(p) {
     scrollLista.current = window.scrollY;
@@ -69,7 +70,7 @@ export default function App() {
   function volver() {
     window.history.pushState(null, "", window.location.pathname);
     setPartidoId(null);
-    setVerTablas(false);
+    setVista(null);
     setVivoId(null);
   }
   function abrirVivo(p) {
@@ -77,11 +78,12 @@ export default function App() {
     window.history.pushState(null, "", `?liga=${encodeURIComponent(p.liga)}&vivo=${encodeURIComponent(p.id)}`);
     setVivoId(p.id);
   }
-  function abrirTablas() {
-    if (!partidoId && !verTablas) scrollLista.current = window.scrollY;
-    window.history.pushState(null, "", "?vista=tablas");
+  function abrirVista(v) {
+    if (!partidoId && !vista && !vivoId) scrollLista.current = window.scrollY;
+    window.history.pushState(null, "", `?vista=${v}`);
     setPartidoId(null);
-    setVerTablas(true);
+    setVivoId(null);
+    setVista(v);
   }
 
   // Cada selección del parlay con la fecha del partido y el nombre del equipo en vez de "Local"/"Visita".
@@ -118,11 +120,13 @@ export default function App() {
 
   return (
     <div className="app">
-      <NavBar enBoleto={boleto.piernas.length} base={partidoId || verTablas || vivoId ? "/" : ""} onBoleto={() => setBoletoAbierto(true)} onTablas={abrirTablas} />
+      <NavBar enBoleto={boleto.piernas.length} base={partidoId || vista || vivoId ? "/" : ""} onBoleto={() => setBoletoAbierto(true)} onVista={abrirVista} />
 
       {vivoId ? (
         <VivoPage liga={parametro("liga")} evento={vivoId} ligas={ligas} boleto={boleto} onVolver={volver} />
-      ) : verTablas ? (
+      ) : vista === "aciertos" ? (
+        <Aciertos onVolver={volver} />
+      ) : vista === "tablas" ? (
         <Tablas ligas={ligas} ligaInicial={liga} onVolver={volver} />
       ) : partidoId ? (
         partido ? (
@@ -171,7 +175,10 @@ export default function App() {
           <div className="tablero-head">
             <div>
               <h2 id="partidos-titulo">{liga === HOY ? "Partidos de hoy" : "Próximos partidos"}</h2>
-              <span className="tablero-sub">{data ? `${data.liga} · ${data.partidos.length} partidos` : "Cargando…"}</span>
+              <span className="tablero-sub">
+                {data ? `${data.liga} · ${data.partidos.length} partidos` : "Cargando…"}
+                {actualizando && <span className="actualizando"> · actualizando…</span>}
+              </span>
             </div>
             {liga !== HOY && (
             <div className="timeframe-group dias" role="group" aria-label="Rango de días">
@@ -233,7 +240,7 @@ export default function App() {
               </div>
 
               <p className="updated">
-                Datos de las {new Date(data.actualizado).toLocaleTimeString("es-MX")} (guardados en caché){" "}
+                Datos de las {new Date(data.actualizado).toLocaleTimeString("es-MX")} {actualizando ? "· actualizando…" : "(guardados en caché)"}{" "}
                 <button type="button" className="link-btn" onClick={refrescar}>
                   Actualizar
                 </button>
