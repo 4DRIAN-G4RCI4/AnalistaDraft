@@ -262,6 +262,7 @@ const enviar = (res, code, data) => {
 http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost');
   try {
+    if (req.method !== 'GET' && req.method !== 'HEAD') return enviar(res, 405, { error: 'Método no permitido' });
     if (url.pathname.startsWith('/api/') && excedeLimite(req)) return enviar(res, 429, { error: 'Demasiadas consultas, espera un minuto.' });
     if (url.pathname === '/api/ligas') return enviar(res, 200, LIGAS);
     if (url.pathname === '/api/aciertos') return enviar(res, 200, await aciertos());
@@ -306,7 +307,6 @@ http.createServer(async (req, res) => {
       return enviarAnalisis(req, res, await analisisListo(liga, dias));
     }
     if (url.pathname.startsWith('/api/')) return enviar(res, 404, { error: 'No encontrado' });
-    if (req.method !== 'GET' && req.method !== 'HEAD') return enviar(res, 405, { error: 'Método no permitido' });
     return estatico(res, url.pathname);
   } catch (e) {
     console.error(e);
