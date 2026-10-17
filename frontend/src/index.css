@@ -3423,3 +3423,25 @@ body {
 .tabla-grupo + .tabla-grupo {
   margin-top: var(--sp-5);
 }
+
+/* filtro de ligas: los botones bajan de línea en vez de desplazarse de lado */
+.news-filter-bar {
+  flex-wrap: wrap;
+  overflow: visible;
+  padding-bottom: 0;
+}
+
+.filters .news-filter-bar {
+  flex: 1 1 100%;
+}
+
+@media (max-width: 640px) {
+  .news-filter-bar {
+    gap: 6px;
+  }
+
+  .news-filter-bar .coin-filter-chip {
+    padding: 6px 12px;
+    font-size: 0.78rem;
+  }
+}
