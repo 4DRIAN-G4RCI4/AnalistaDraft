@@ -2,6 +2,39 @@ import { useEffect, useState } from "react";
 import { linkSeguro, momio, pct } from "../format";
 import AddButton from "./AddButton";
 import Ganador from "./Ganador";
+import Alineaciones from "./Alineaciones";
+
+// Botón "Ver alineaciones": las pide solo al abrirlas.
+function VerAlineaciones({ p }) {
+  const [abierto, setAbierto] = useState(false);
+  const [datos, setDatos] = useState(null);
+  const [error, setError] = useState(false);
+  function alternar() {
+    if (!abierto && !datos) {
+      fetch(`/api/alineacion?liga=${encodeURIComponent(p.liga)}&evento=${encodeURIComponent(p.id)}`)
+        .then((r) => (r.ok ? r.json() : Promise.reject()))
+        .then(setDatos)
+        .catch(() => setError(true));
+    }
+    setAbierto((v) => !v);
+  }
+  return (
+    <div className="vivo-alin">
+      <button type="button" className="news-toggle" onClick={alternar} aria-expanded={abierto}>
+        <span>{abierto ? "Ocultar alineaciones" : "Ver alineaciones"}</span>
+        <span aria-hidden="true">{abierto ? "▴" : "▾"}</span>
+      </button>
+      {abierto &&
+        (error ? (
+          <p className="muted news-empty">No se pudieron cargar.</p>
+        ) : !datos ? (
+          <p className="muted news-empty">Cargando…</p>
+        ) : (
+          <Alineaciones local={p.local} visita={p.visita} alineaciones={datos} />
+        ))}
+    </div>
+  );
+}
 
 const ICONO = { gol: "⚽", autogol: "⚽ (autogol)", amarilla: "🟨", roja: "🟥" };
 
@@ -91,6 +124,7 @@ export default function EnVivo({ liga, ligas, boleto }) {
               </ul>
             )}
             {p.ganador && <Ganador local={p.local.nombre} visita={p.visita.nombre} prob={p.ganador} />}
+            <VerAlineaciones p={p} />
             {p.sugerencias?.length > 0 && (
               <div className="vivo-sug">
                 <span className="vivo-razon">{p.razon}</span>
