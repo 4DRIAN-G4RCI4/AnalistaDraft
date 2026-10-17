@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import ThemeToggle from "./ThemeToggle";
 import BrandIcon from "./BrandIcon";
 
-export default function NavBar({ enBoleto = 0, base = "", onBoleto, onTablas }) {
+export default function NavBar({ enBoleto = 0, base = "", onBoleto, onVista }) {
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -27,15 +27,21 @@ export default function NavBar({ enBoleto = 0, base = "", onBoleto, onTablas }) 
         <a href={`${base}#partidos`}>Partidos</a>
         <a href={`${base}#recomendado`}>Recomendado</a>
         <a href={`${base}#parlays`}>Parlays</a>
-        <a
-          href="?vista=tablas"
-          onClick={(e) => {
-            e.preventDefault();
-            onTablas();
-          }}
-        >
-          Tablas
-        </a>
+        {[
+          ["tablas", "Tablas"],
+          ["aciertos", "Aciertos"],
+        ].map(([v, texto]) => (
+          <a
+            key={v}
+            href={`?vista=${v}`}
+            onClick={(e) => {
+              e.preventDefault();
+              onVista(v);
+            }}
+          >
+            {texto}
+          </a>
+        ))}
         <button type="button" className="nav-boleto" onClick={onBoleto}>
           Simulador{enBoleto ? ` (${enBoleto})` : ""}
         </button>
