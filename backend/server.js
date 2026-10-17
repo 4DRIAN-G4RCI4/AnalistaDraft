@@ -3,7 +3,7 @@ import path from 'node:path';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import zlib from 'node:zlib';
-import { LIGAS, tabla, partidos, noticias, valorPlantilla, memo, limpiarDisco } from './lib/datos.js';
+import { LIGAS, tabla, partidos, noticias, valorPlantilla, memo, limpiarDisco, enVivo } from './lib/datos.js';
 import { golesEsperados, mercados, decimal, sinMargen, armarParlays, ajustarAMercado, combinarGoles, conteoEsperado, mercadosConteo, fraccion1T, mercadosTiempos, probGoleadores } from './lib/modelo.js';
 import { previa, estadisticasEquipo, CATEGORIAS } from './lib/stats.js';
 import { eventosLiga, buscarEvento, consenso } from './lib/cuotas.js';
@@ -216,6 +216,10 @@ http.createServer(async (req, res) => {
   try {
     if (url.pathname.startsWith('/api/') && excedeLimite(req)) return enviar(res, 429, { error: 'Demasiadas consultas, espera un minuto.' });
     if (url.pathname === '/api/ligas') return enviar(res, 200, LIGAS);
+    if (url.pathname === '/api/envivo') {
+      const r = await Promise.allSettled(Object.keys(LIGAS).map(enVivo)); // una liga caída no tumba las demás
+      return enviar(res, 200, r.flatMap(x => (x.status === 'fulfilled' ? x.value : [])));
+    }
     if (url.pathname === '/api/analisis') {
       const liga = url.searchParams.get('liga');
       if (liga !== HOY && !Object.hasOwn(LIGAS, liga)) return enviar(res, 400, { error: 'Liga inválida' });
