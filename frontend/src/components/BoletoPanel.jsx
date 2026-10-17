@@ -7,7 +7,8 @@ const numero = (v) => {
   const n = parseFloat(String(v).replace(",", "."));
   return Number.isFinite(n) && n > 0 ? n : null;
 };
-const dinero = (n) => `$${n.toFixed(2)}`;
+const dinero = (n) => `${n.toFixed(2)}`;
+const MOMIO_MAX = 20; // la barra llega a 20; momios más altos se escriben a mano
 
 // Simulador de boleto: calcula probabilidad y ganancia estimada. Aquí no se apuesta.
 // La cuota sale sola: lo que pagan las casas y, donde no publican, la cuota justa del modelo.
@@ -20,7 +21,8 @@ export default function BoletoPanel({ boleto, abierto, setAbierto }) {
   const { piernas, quitar, vaciar, agregar } = boleto;
 
   const deTuCasa = numero(momioCasa) > 1 ? numero(momioCasa) : null;
-  const cuota = deTuCasa ?? piernas.reduce((c, x) => c * (x.cuota ?? 1 / x.prob), 1);
+  const estimada = piernas.reduce((c, x) => c * (x.cuota ?? 1 / x.prob), 1);
+  const cuota = deTuCasa ?? estimada;
   const todasConCasa = piernas.length > 0 && piernas.every((x) => x.cuota);
   const a = analizarBoleto(piernas, { monto: numero(monto) ?? 0, momio: deTuCasa });
   const apuesta = numero(monto);
@@ -114,8 +116,19 @@ export default function BoletoPanel({ boleto, abierto, setAbierto }) {
             </label>
             <label className="simulador-monto">
               <span className="market-overview-label">Momio que te da tu casa (opcional)</span>
-              <input inputMode="decimal" placeholder={`Ej. 2.41 · estimado ${piernas.reduce((c, x) => c * (x.cuota ?? 1 / x.prob), 1).toFixed(2)}`} value={momioCasa} onChange={(e) => setMomioCasa(e.target.value)} />
+              <input inputMode="decimal" placeholder={`Ej. 2.41 · estimado ${estimada.toFixed(2)}`} value={momioCasa} onChange={(e) => setMomioCasa(e.target.value)} />
             </label>
+            <input
+              type="range"
+              className="momio-barra"
+              min="1.01"
+              max={MOMIO_MAX}
+              step="0.01"
+              value={Math.min(deTuCasa ?? estimada, MOMIO_MAX)}
+              onChange={(e) => setMomioCasa(e.target.value)}
+              aria-label="Momio que te da tu casa"
+              aria-valuetext={`Momio ${(deTuCasa ?? estimada).toFixed(2)}`}
+            />
 
             <div className="boleto-resumen">
               <div>

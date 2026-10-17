@@ -2819,3 +2819,74 @@ body {
     animation: none;
   }
 }
+
+/* ---------- barra del momio ---------- */
+
+.momio-barra {
+  width: 100%;
+  accent-color: var(--accent);
+  margin-top: calc(var(--sp-1) * -1);
+}
+
+/* ---------- qué se habría ganado ---------- */
+
+.historial {
+  display: grid;
+  gap: var(--sp-5);
+}
+
+.hist-resumen {
+  list-style: none;
+  margin: 0 0 var(--sp-3);
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.hist-resumen li {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  background: var(--surface-raised);
+}
+
+.hist-resumen li.alto {
+  background: var(--up-dim);
+  color: var(--up);
+}
+
+.hist-feed {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.hist-feed li {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--sp-2) 0;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.hist-partido {
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.hist-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.hist-chip {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--up);
+  border: 1px solid color-mix(in srgb, var(--up) 40%, transparent);
+  border-radius: var(--radius-full);
+  padding: 1px 8px;
+}

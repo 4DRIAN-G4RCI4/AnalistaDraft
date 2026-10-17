@@ -5,6 +5,7 @@ import { Enfrentamiento, FORMA } from "./Equipo";
 import Puntos from "./Puntos";
 import MejorApuesta from "./MejorApuesta";
 import AddButton from "./AddButton";
+import Historial from "./Historial";
 
 const PRINCIPALES = [
   "Local", "Empate", "Visita", "Local o empate", "Visita o empate", "Hay ganador (sin empate)",
@@ -328,6 +329,15 @@ export default function PartidoPage({ p, boleto, onVolver }) {
               <span className="panel-sub">incluye copas</span>
             </div>
             <Forma p={p} />
+          </section>
+
+          <section className="panel">
+            <div className="panel-head">
+              <h2>Qué se habría ganado</h2>
+              <span className="panel-sub">en sus últimos partidos</span>
+            </div>
+            <p className="tab-nota">Apuestas comunes que se cumplieron en cada partido reciente. Que se haya cumplido antes no garantiza que se repita.</p>
+            <Historial p={p} />
           </section>
 
           <section className="panel">
