@@ -15,6 +15,14 @@ export const LIGAS = {
   'ger.1': { nombre: 'Bundesliga', tm: 'L1' },
   'fra.1': { nombre: 'Ligue 1', tm: 'FR1' },
   'mex.1': { nombre: 'Liga MX', tm: 'MEX1' },
+  'uefa.champions': { nombre: 'Champions League', tm: null }, // copas: el valor de plantilla se busca en todas las ligas
+  'uefa.europa': { nombre: 'Europa League', tm: null },
+  'uefa.europa.conf': { nombre: 'Conference League', tm: null },
+  'ned.1': { nombre: 'Eredivisie', tm: 'NL1' },
+  'ksa.1': { nombre: 'Saudi Pro League', tm: 'SA1' },
+  'usa.1': { nombre: 'MLS', tm: 'MLS1' },
+  'arg.1': { nombre: 'Liga Argentina', tm: 'ARG1' },
+  'bra.1': { nombre: 'Brasileirão', tm: 'BRA1' },
 };
 
 export const ESPN = 'https://site.api.espn.com/apis';
@@ -113,12 +121,14 @@ export async function json(url, ttl, nombre = url.replace(/^https:\/\/[^/]+\//, 
 
 export const tabla = liga => memo(`tabla:${liga}`, TTL.tabla, async () => {
   const j = await json(`${ESPN}/v2/sports/soccer/${liga}/standings`, TTL.tabla);
-  return j.children[0].standings.entries.map(e => {
+  // MLS y Argentina vienen en dos grupos (conferencias / grupos A y B): se juntan con el nombre del grupo
+  return j.children.flatMap(c => c.standings.entries.map(e => ({ e, grupo: j.children.length > 1 ? c.name : null }))).map(({ e, grupo }) => {
     const s = Object.fromEntries(e.stats.map(x => [x.name, x.value]));
     return {
       id: e.team.id, nombre: e.team.displayName, pj: s.gamesPlayed, gf: s.pointsFor, gc: s.pointsAgainst, pts: s.points, pos: s.rank,
       g: s.wins, e: s.ties, p: s.losses, logo: e.team.logos?.[0]?.href ?? null,
       zona: e.note ? { texto: e.note.description, color: e.note.color } : null, // p. ej. Champions, descenso
+      grupo,
     };
   });
 });
@@ -298,6 +308,8 @@ export function mejorCoincidencia(nombre, candidatos) {
 }
 
 export async function valorPlantilla(liga, nombreEquipo) {
-  const clubes = Object.values((await valoresTM())[LIGAS[liga].tm] ?? {});
+  const todos = await valoresTM();
+  const tm = LIGAS[liga].tm;
+  const clubes = tm ? Object.values(todos[tm] ?? {}) : Object.values(todos).flatMap(Object.values); // copas: cualquier liga
   return mejorCoincidencia(nombreEquipo, clubes);
 }
