@@ -166,7 +166,7 @@ export default function App() {
               {/* Partidos a la izquierda; lo más recomendable en una columna aparte a la derecha */}
               <div className="home-grid">
                 <section id="partidos" aria-labelledby="partidos-titulo">
-                  <EnVivo liga={liga} ligas={ligas} />
+                  <EnVivo liga={liga} ligas={ligas} boleto={boleto} />
                   {data.partidos.length ? (
                     <div className="match-grid">
                       {data.partidos.map((p) => (

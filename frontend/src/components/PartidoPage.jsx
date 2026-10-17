@@ -6,6 +6,7 @@ import Puntos from "./Puntos";
 import MejorApuesta from "./MejorApuesta";
 import AddButton from "./AddButton";
 import Historial from "./Historial";
+import Ganador from "./Ganador";
 
 const PRINCIPALES = [
   "Local", "Empate", "Visita", "Local o empate", "Visita o empate", "Hay ganador (sin empate)",
@@ -241,6 +242,7 @@ export default function PartidoPage({ p, boleto, onVolver }) {
             Marcador probable {p.marcador.local}-{p.marcador.visita} ({pct(p.marcador.prob)})
           </span>
         </div>
+        <Ganador local={p.local.nombre} visita={p.visita.nombre} prob={{ local: p.probs.Local, empate: p.probs.Empate, visita: p.probs.Visita }} />
         <MejorApuesta p={p} boleto={boleto} completa />
       </section>
 

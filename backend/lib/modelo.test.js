@@ -203,3 +203,18 @@ test('recomendadas por partido: una por tipo, entre 60% y 85%, con razón', asyn
   assert.ok(corners.razon.includes('Barcelona domina'));
   assert.ok(lista.some(x => x.nombre === 'Lewandowski 1+ tiros a puerta'));
 });
+
+test('en vivo: el marcador y el tiempo que queda mandan', async () => {
+  const { mercadosVivo } = await import('./modelo.js');
+  // 1-0 al 80': el que va ganando casi siempre gana
+  const a = mercadosVivo(1.5, 1.2, 1, 0, 80).probs;
+  assert.ok(a['Gana Local'] > 0.75 && a['Gana Local'] < 0.95);
+  assert.ok(Math.abs(a['Gana Local'] + a.Empate + a['Gana Visita'] - 1) < 1e-9);
+  assert.ok(a['Más de 0.5 goles'] === undefined && a['Más de 1.5 goles'] < 0.3); // ya hay 1 gol: líneas desde 1.5
+  // 0-0 al minuto 0 = partido completo
+  const b = mercadosVivo(1.5, 1.2, 0, 0, 0).probs;
+  const { probs } = mercados(1.5, 1.2);
+  assert.ok(Math.abs(b['Gana Local'] - probs.Local) < 1e-6);
+  // ambos ya anotaron: no se ofrece
+  assert.equal(mercadosVivo(1.5, 1.2, 1, 1, 50).probs['Ambos anotan'], undefined);
+});
