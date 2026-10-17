@@ -6,7 +6,9 @@ Analista de fútbol gratuito: partidos, tabla, forma, valor de plantilla, notici
 
 ## Qué hace
 
-- **Partidos** de Liga MX, Premier League, LaLiga, Serie A, Bundesliga y Ligue 1 (próximos 3, 7 o 14 días).
+- **Partidos** de 14 ligas: Liga MX, Premier League, LaLiga, Serie A, Bundesliga, Ligue 1, Champions League, Europa League, Conference League, Eredivisie, Saudi Pro League, MLS, Liga Argentina y Brasileirão (hoy, en vivo o próximos 3, 7 o 14 días).
+- **En vivo:** marcador, estadísticas, alineaciones y sugerencias que toman en cuenta el tiempo que queda y las expulsiones.
+- **Tablas de posiciones** de todas las ligas.
 - **Lo más recomendable** de cada partido entre goles, tiempos, corners, tarjetas, tiros a puerta, tiros y jugadores, con su razón, lo que paga (decimal y americano) y cuándo conviene apostar.
 - **Página por partido** con todos los mercados, análisis, últimos 5 partidos de cada equipo y noticias.
 - **Parlays sugeridos** (más probable y con valor) y un **simulador de boleto** con ganancia estimada. Aquí no se apuesta.
@@ -24,27 +26,3 @@ Analista de fútbol gratuito: partidos, tabla, forma, valor de plantilla, notici
 | ESPN | partidos, tabla, momios DraftKings, noticias, estadísticas, alineaciones | 20 min – 2 h; partidos jugados para siempre |
 | [transfermarkt-datasets](https://github.com/dcaribou/transfermarkt-datasets) | valor de plantilla | 24 h |
 | [The Odds API](https://the-odds-api.com) (opcional) | cuotas de varias casas | 12 h |
-
-## Correr en local
-
-Requiere Node 22 o más.
-
-```bash
-npm install
-npm --prefix frontend install
-npm run dev          # http://localhost:5173 (frontend) + API en :4000
-npm test             # pruebas del modelo y del simulador
-```
-
-Opcional: copia `backend/.env.example` a `backend/.env` y pon tu `ODDS_API_KEY`.
-
-## Producción
-
-```bash
-npm run build        # compila la página en frontend/dist
-npm start            # el backend sirve la API y la página en un solo puerto
-```
-
-En **Render**: *New → Blueprint* con este repo (usa `render.yaml`). Variables: `HOST=0.0.0.0` (ya incluida) y `ODDS_API_KEY` opcional. En el plan gratis el servicio se duerme tras 15 min sin visitas y tarda ~1 min en despertar.
-
-Para compartir rápido desde tu computadora sin desplegar: `npm run compartir` (túnel temporal de Cloudflare; requiere `cloudflared`).
