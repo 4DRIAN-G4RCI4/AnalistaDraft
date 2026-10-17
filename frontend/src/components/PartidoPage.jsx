@@ -348,7 +348,7 @@ export default function PartidoPage({ p, boleto, onVolver }) {
           <h2>Alineaciones</h2>
           <span className="panel-sub">{confirmadas ? "confirmadas" : "se publican ~1 h antes"}</span>
         </div>
-        <Alineaciones p={p} />
+        <Alineaciones local={p.local} visita={p.visita} alineaciones={p.alineaciones} />
       </section>
 
       <section className="panel">
