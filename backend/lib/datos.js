@@ -140,15 +140,29 @@ export const partidos = (liga, dias) => memo(`partidos:${liga}:${dias}`, TTL.par
   const vistos = new Set();
   return dias_.flatMap(d => d.events)
     .filter(ev => ev.status.type.state === 'pre' && !vistos.has(ev.id) && vistos.add(ev.id))
-    .map(ev => {
-      const c = ev.competitions[0];
-      const eq = lado => {
-        const t = c.competitors.find(x => x.homeAway === lado);
-        return { id: t.team.id, nombre: t.team.displayName, logo: t.team.logo, forma: t.form || '' };
-      };
-      return { id: ev.id, fecha: ev.date, local: eq('home'), visita: eq('away'), momios: momiosDe(c) };
-    });
+    .map(partidoDe);
 });
+
+// Evento del scoreboard -> partido para analizar (equipos, fecha y momios de la casa)
+function partidoDe(ev) {
+  const c = ev.competitions[0];
+  const eq = lado => {
+    const t = c.competitors.find(x => x.homeAway === lado);
+    return { id: t.team.id, nombre: t.team.displayName, logo: t.team.logo, forma: t.form || '' };
+  };
+  return { id: ev.id, fecha: ev.date, local: eq('home'), visita: eq('away'), momios: momiosDe(c) };
+}
+
+// Un partido concreto de hoy, ayer o mañana (UTC), en cualquier estado: para su página en vivo y su prepartido.
+export async function buscarPartido(liga, evento) {
+  const fechas = [-1, 0, 1].map(i => new Date(Date.now() + i * 864e5).toISOString().slice(0, 10).replaceAll('-', ''));
+  for (const f of fechas) {
+    const j = await json(`${ESPN}/site/v2/sports/soccer/${liga}/scoreboard?dates=${f}`, 60e3, `partido_${liga}_${f}`);
+    const ev = j.events?.find(e => e.id === evento);
+    if (ev) return { estado: ev.status.type.state, vivo: vivoDe(ev, liga), partido: partidoDe(ev) };
+  }
+  return null;
+}
 
 // Momios de la casa (DraftKings) que trae el scoreboard de ESPN; siguen ahí durante el partido.
 function momiosDe(c) {
@@ -166,7 +180,11 @@ function momiosDe(c) {
 // Partidos en juego ahora mismo: marcador y minuto, refrescados cada minuto.
 export const enVivo = liga => memo(`envivo:${liga}`, 60e3, async () => {
   const j = await json(`${ESPN}/site/v2/sports/soccer/${liga}/scoreboard`, 60e3, `envivo_${liga}`);
-  return j.events.filter(e => e.status.type.state === 'in').map(e => {
+  return j.events.filter(e => e.status.type.state === 'in').map(e => vivoDe(e, liga));
+});
+
+// Evento del scoreboard -> marcador, minuto, estadísticas y goles/tarjetas
+function vivoDe(e, liga) {
     const c = e.competitions[0];
     const eq = lado => {
       const t = c.competitors.find(x => x.homeAway === lado);
@@ -189,8 +207,7 @@ export const enVivo = liga => memo(`envivo:${liga}`, 60e3, async () => {
       jugado: Math.min(90, (e.status.clock ?? 0) / 60), descanso: e.status.type.name === 'STATUS_HALFTIME',
       momios: momiosDe(c),
     };
-  });
-});
+}
 
 export const noticias = liga => memo(`noticias:${liga}`, TTL.noticias, async () => {
   const j = await json(`${ESPN}/site/v2/sports/soccer/${liga}/news?lang=es&limit=50`, TTL.noticias);
