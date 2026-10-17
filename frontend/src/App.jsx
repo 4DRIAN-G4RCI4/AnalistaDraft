@@ -15,6 +15,7 @@ import { useAnalisis, useLigas } from "./hooks/useAnalisis";
 
 const DIAS = [3, 7, 14];
 const HOY = "hoy"; // todos los partidos de hoy de todas las ligas
+const VIVO = "vivo"; // solo los partidos en juego, de todas las ligas
 
 const parametro = (k) => new URLSearchParams(window.location.search).get(k);
 
@@ -31,7 +32,8 @@ export default function App() {
   const ligas = useLigas();
   const [liga, setLiga] = useState(ligaInicial);
   const [dias, setDias] = useState(7);
-  const { data, loading, error, despertando, refrescar } = useAnalisis(liga, dias);
+  // "En vivo" no tiene análisis propio: se piden los de Hoy (ya en caché) para no dejar la página vacía al volver
+  const { data, loading, error, despertando, refrescar } = useAnalisis(liga === VIVO ? HOY : liga, dias);
   const boleto = useBoleto();
   const [boletoAbierto, setBoletoAbierto] = useState(false);
 
@@ -136,7 +138,7 @@ export default function App() {
 
           <div className="filters">
             <div className="news-filter-bar" role="group" aria-label="Liga">
-              {Object.entries({ [HOY]: { nombre: "Hoy" }, ...ligas }).map(([id, l]) => (
+              {Object.entries({ [VIVO]: { nombre: "● En vivo" }, [HOY]: { nombre: "Hoy" }, ...ligas }).map(([id, l]) => (
                 <button
                   key={id}
                   type="button"
@@ -150,6 +152,10 @@ export default function App() {
             </div>
           </div>
 
+          {liga === VIVO ? (
+            <EnVivo liga={HOY} ligas={ligas} boleto={boleto} soloVivo />
+          ) : (
+          <>
           {/* Tablero: filtro de días arriba de los partidos */}
           <div className="tablero-head">
             <div>
@@ -222,6 +228,8 @@ export default function App() {
                 </button>
               </p>
             </>
+          )}
+          </>
           )}
         </>
       )}
