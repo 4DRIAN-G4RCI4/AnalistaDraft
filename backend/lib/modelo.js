@@ -162,6 +162,40 @@ const ORDEN_TIEMPOS = [
   'Más goles en el 1T', 'Más goles en el 2T', 'Mismos goles en ambos tiempos',
   ...R.flatMap(h => R.map(f => `Descanso/Final: ${h}/${f}`)),
 ];
+// ---------- en vivo ----------
+// Goles que faltan = goles esperados del partido × fracción de tiempo que queda (Poisson); se suman al marcador.
+// shortcut: no considera expulsiones ni que el que va perdiendo ataque más; mejorar con estadísticas en vivo.
+export function mercadosVivo(gl, gv, golesL, golesV, jugado) {
+  const f = Math.max(0.03, (90 - jugado) / 90); // en el descuento siempre queda algo
+  const [L, V] = [gl * f, gv * f].map(l => Array.from({ length: MAX_GOLES + 1 }, (_, k) => pois(k, l)));
+  const total0 = golesL + golesV;
+  const p = { 'Gana Local': 0, 'Empate': 0, 'Gana Visita': 0, 'Otro gol': 0, 'Anota Local': 0, 'Anota Visita': 0, 'Ambos anotan': 0 };
+  const masDe = {};
+  let suma = 0;
+  for (let l = 0; l <= MAX_GOLES; l++) {
+    for (let v = 0; v <= MAX_GOLES; v++) {
+      const x = L[l] * V[v];
+      suma += x;
+      const a = golesL + l, b = golesV + v;
+      p[a > b ? 'Gana Local' : a < b ? 'Gana Visita' : 'Empate'] += x;
+      if (l + v > 0) p['Otro gol'] += x;
+      if (l > 0) p['Anota Local'] += x;
+      if (v > 0) p['Anota Visita'] += x;
+      if (a > 0 && b > 0) p['Ambos anotan'] += x;
+      for (let n = total0; n <= total0 + 3; n++) if (a + b > n + 0.5) masDe[n] = (masDe[n] ?? 0) + x;
+    }
+  }
+  for (const k of Object.keys(p)) p[k] /= suma;
+  p['Local o empate'] = p['Gana Local'] + p.Empate;
+  p['Visita o empate'] = p['Gana Visita'] + p.Empate;
+  for (let n = total0; n <= total0 + 3; n++) {
+    p[`Más de ${n + 0.5} goles`] = (masDe[n] ?? 0) / suma;
+    p[`Menos de ${n + 0.5} goles`] = 1 - (masDe[n] ?? 0) / suma;
+  }
+  if (golesL > 0 && golesV > 0) delete p['Ambos anotan']; // ya se cumplió: no es apuesta
+  return { probs: p, quedan: { local: gl * f, visita: gv * f } };
+}
+
 // ---------- goleadores ----------
 const PARTE_TIROS = 0.6; // los tiros son más estables que los goles en 5 partidos
 const SUPLENTE = 0.25; // alineación confirmada y no es titular: a lo mucho entra de cambio

@@ -1,10 +1,14 @@
 import { useEffect, useState } from "react";
-import { linkSeguro } from "../format";
+import { linkSeguro, momio, pct } from "../format";
+import AddButton from "./AddButton";
+import Ganador from "./Ganador";
+
+const ICONO = { gol: "⚽", autogol: "⚽ (autogol)", amarilla: "🟨", roja: "🟥" };
 
 const CADA = 60e3;
 
 // Franja con los partidos que se están jugando ahora: marcador y minuto, se actualiza cada minuto.
-export default function EnVivo({ liga, ligas }) {
+export default function EnVivo({ liga, ligas, boleto }) {
   const [partidos, setPartidos] = useState([]);
 
   useEffect(() => {
@@ -38,7 +42,7 @@ export default function EnVivo({ liga, ligas }) {
         <h2 id="vivo-titulo">
           <span className="vivo-punto" aria-hidden="true" /> En vivo
         </h2>
-        <span className="panel-sub">se actualiza cada minuto · sin análisis</span>
+        <span className="panel-sub">se actualiza cada minuto</span>
       </div>
       <ul className="vivo-lista">
         {lista.map((p) => (
@@ -50,9 +54,66 @@ export default function EnVivo({ liga, ligas }) {
             </b>
             <Equipo e={p.visita} />
             <span className="vivo-minuto">{p.minuto}</span>
+            <table className="vivo-stats">
+              <thead>
+                <tr>
+                  <th>{p.local.nombre}</th>
+                  <th />
+                  <th>{p.visita.nombre}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  ["corners", "Tiros de esquina"],
+                  ["tirosPuerta", "Tiros a puerta"],
+                  ["tiros", "Tiros totales"],
+                ].map(([k, n]) => (
+                  <tr key={k}>
+                    <td>{p.local[k]}</td>
+                    <th scope="row">{n}</th>
+                    <td>{p.visita[k]}</td>
+                  </tr>
+                ))}
+                <tr>
+                  <td>{p.eventos.filter((e) => e.local && e.tipo !== "gol" && e.tipo !== "autogol").length}</td>
+                  <th scope="row">Tarjetas (total {p.eventos.filter((e) => e.tipo === "amarilla" || e.tipo === "roja").length})</th>
+                  <td>{p.eventos.filter((e) => !e.local && e.tipo !== "gol" && e.tipo !== "autogol").length}</td>
+                </tr>
+              </tbody>
+            </table>
+            {p.eventos.length > 0 && (
+              <ul className="vivo-eventos">
+                {p.eventos.map((e, i) => (
+                  <li key={i}>
+                    <span>{e.minuto}</span> {ICONO[e.tipo]} <b>{e.jugador || "—"}</b> ({e.local ? p.local.nombre : p.visita.nombre})
+                  </li>
+                ))}
+              </ul>
+            )}
+            {p.ganador && <Ganador local={p.local.nombre} visita={p.visita.nombre} prob={p.ganador} />}
+            {p.sugerencias?.length > 0 && (
+              <div className="vivo-sug">
+                <span className="vivo-razon">{p.razon}</span>
+                {p.sugerencias.map((s) => (
+                  <span key={s.mercado} className="vivo-pick">
+                    <b>{s.mercado}</b> {pct(s.prob)} · justa {momio(1 / s.prob)}
+                    {boleto && (
+                      <AddButton
+                        boleto={boleto}
+                        sel={{ partidoId: `vivo-${p.id}`, partido: `${p.local.nombre} vs ${p.visita.nombre} (en vivo, ${p.minuto})`, mercado: s.mercado, prob: s.prob, cuota: null }}
+                      />
+                    )}
+                  </span>
+                ))}
+              </div>
+            )}
           </li>
         ))}
       </ul>
+      <p className="tab-nota">
+        En vivo: goles esperados de antes del partido (según las casas) ajustados al marcador y al tiempo que queda. No considera
+        expulsiones ni cómo va el juego, y las cuotas en vivo cambian cada minuto: compara con tu casa antes de apostar.
+      </p>
     </section>
   );
 }
