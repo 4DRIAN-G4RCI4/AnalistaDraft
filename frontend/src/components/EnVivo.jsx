@@ -41,8 +41,11 @@ const ICONO = { gol: "⚽", autogol: "⚽ (autogol)", amarilla: "🟨", roja: "�
 const CADA = 60e3;
 
 // Franja con los partidos que se están jugando ahora: marcador y minuto, se actualiza cada minuto.
-export default function EnVivo({ liga, ligas, boleto }) {
+// soloVivo: vista "En vivo" (todas las ligas y mensaje si no hay partidos en juego)
+export default function EnVivo({ liga, ligas, boleto, soloVivo = false }) {
   const [partidos, setPartidos] = useState([]);
+  const [cargado, setCargado] = useState(false);
+  const [abiertos, setAbiertos] = useState({}); // id -> true/false (estadísticas desplegadas)
   const [goles, setGoles] = useState({}); // id del partido -> nombre del equipo que acaba de anotar
   const antes = useRef(null); // marcadores del refresco anterior
 
@@ -50,6 +53,7 @@ export default function EnVivo({ liga, ligas, boleto }) {
   function actualizar(lista) {
     const previos = antes.current;
     antes.current = Object.fromEntries(lista.map((p) => [p.id, [p.local.goles, p.visita.goles]]));
+    setCargado(true);
     if (!previos) return setPartidos(lista); // la primera carga no anima goles viejos
     const nuevos = {};
     for (const p of lista) {
@@ -79,8 +83,20 @@ export default function EnVivo({ liga, ligas, boleto }) {
     };
   }, []);
 
-  const lista = liga === "hoy" ? partidos : partidos.filter((p) => p.liga === liga);
-  if (!lista.length) return null;
+  const todas = soloVivo || liga === "hoy";
+  const lista = todas ? partidos : partidos.filter((p) => p.liga === liga);
+  if (!lista.length) {
+    if (!soloVivo) return null;
+    return (
+      <section className="panel state">
+        <span className="state-title">{cargado ? "Ahora no hay partidos en vivo" : "Buscando partidos en vivo…"}</span>
+        <span className="state-desc">Se revisa cada minuto. Mientras, mira los partidos de Hoy.</span>
+      </section>
+    );
+  }
+  // con un solo partido se ve todo de entrada; con varios, compactos hasta que los despliegues
+  const abierto = (p) => abiertos[p.id] ?? lista.length === 1;
+  const alternar = (p) => setAbiertos((a) => ({ ...a, [p.id]: !abierto(p) }));
 
   const Equipo = ({ e }) => (
     <span className="vivo-equipo">
@@ -106,13 +122,19 @@ export default function EnVivo({ liga, ligas, boleto }) {
                 <span className="gol-equipo">{goles[p.id]}</span>
               </div>
             )}
-            {liga === "hoy" && <span className="match-liga">{ligas[p.liga]?.nombre}</span>}
+            {todas && <span className="match-liga">{ligas[p.liga]?.nombre}</span>}
             <Equipo e={p.local} />
             <b className="vivo-marcador">
               {p.local.goles} - {p.visita.goles}
             </b>
             <Equipo e={p.visita} />
             <span className="vivo-minuto">{p.minuto}</span>
+            <button type="button" className="news-toggle vivo-desplegar" onClick={() => alternar(p)} aria-expanded={abierto(p)}>
+              <span>{abierto(p) ? "Ocultar estadísticas" : "Ver estadísticas, sugerencias y alineaciones"}</span>
+              <span aria-hidden="true">{abierto(p) ? "▴" : "▾"}</span>
+            </button>
+            {abierto(p) && (
+            <>
             <table className="vivo-stats">
               <thead>
                 <tr>
@@ -166,6 +188,8 @@ export default function EnVivo({ liga, ligas, boleto }) {
                   </span>
                 ))}
               </div>
+            )}
+            </>
             )}
           </li>
         ))}
