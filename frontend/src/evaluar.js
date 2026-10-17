@@ -1,0 +1,47 @@
+// ¿Se cumplió la predicción? Compara un mercado del prepartido con el marcador y las estadísticas.
+// v: { estado: "in" | "post", local, visita (goles, corners, tirosPuerta, tiros), eventos[] }
+// Devuelve "si" (cumplida), "no" (fallida), "pendiente" (aún no se decide) o null (no se puede medir).
+const CONTEO = { corners: "corners", tarjetas: "tarjetas", "tiros a puerta": "tirosPuerta", tiros: "tiros" };
+
+// "45'+2'" -> 1T; "67'" -> 2T
+const tiempoDe = (minuto) => (parseInt(minuto, 10) <= 45 ? 1 : 2);
+
+export function evaluar(mercado, v) {
+  const fin = v.estado === "post";
+  const gl = v.local.goles, gv = v.visita.goles;
+  const tarjetas = (local) => v.eventos.filter((e) => (e.tipo === "amarilla" || e.tipo === "roja") && (local == null || e.local === local)).length;
+  const goles = (local, t) => v.eventos.filter((e) => (e.tipo === "gol" || e.tipo === "autogol") && (local == null || e.local === local) && (t == null || tiempoDe(e.minuto) === t)).length;
+  const alFinal = (ok) => (fin ? (ok ? "si" : "no") : "pendiente");
+  // "más de X": se cumple en cuanto se pasa; "menos de X": falla en cuanto se pasa
+  // cerrado: ya no puede cambiar (fin del partido, o del 1T para mercados del primer tiempo)
+  const linea = (valor, mas, x, cerrado = fin) => (mas ? (valor > x ? "si" : cerrado ? "no" : "pendiente") : valor > x ? "no" : cerrado ? "si" : "pendiente");
+
+  switch (mercado) {
+    case "Local": return alFinal(gl > gv);
+    case "Empate": return alFinal(gl === gv);
+    case "Visita": return alFinal(gl < gv);
+    case "Local o empate": return alFinal(gl >= gv);
+    case "Visita o empate": return alFinal(gl <= gv);
+    case "Hay ganador (sin empate)": return alFinal(gl !== gv);
+    case "Ambos anotan": return gl > 0 && gv > 0 ? "si" : fin ? "no" : "pendiente";
+    case "No ambos anotan": return gl > 0 && gv > 0 ? "no" : fin ? "si" : "pendiente";
+  }
+  let m = mercado.match(/^(Local |Visita )?(Más|más|Menos|menos) de ([\d.]+) goles( en ([12])T)?$/);
+  if (m) {
+    const lado = m[1] ? m[1].trim() === "Local" : null;
+    const t = m[5] ? Number(m[5]) : null;
+    // con el marcador cuando se puede; por tiempo, con los goles registrados
+    const valor = t ? goles(lado, t) : lado == null ? gl + gv : lado ? gl : gv;
+    const cerrado = fin || (t === 1 && (v.descanso || v.jugado > 45));
+    return linea(valor, /más/i.test(m[2]), Number(m[3]), cerrado);
+  }
+  m = mercado.match(/^(Local |Visita )?(Más|más|Menos|menos) de ([\d.]+) (corners|tarjetas|tiros a puerta|tiros)$/);
+  if (m) {
+    const lado = m[1] ? m[1].trim() === "Local" : null;
+    const valor = m[4] === "tarjetas" ? tarjetas(lado) : lado == null ? v.local[CONTEO[m[4]]] + v.visita[CONTEO[m[4]]] : (lado ? v.local : v.visita)[CONTEO[m[4]]];
+    return linea(valor, /más/i.test(m[2]), Number(m[3]));
+  }
+  m = mercado.match(/^(.+) anota$/);
+  if (m) return v.eventos.some((e) => e.tipo === "gol" && e.jugador === m[1]) ? "si" : fin ? "no" : "pendiente";
+  return null; // tiros por jugador, descanso/final, etc.: ESPN no da el dato en vivo
+}

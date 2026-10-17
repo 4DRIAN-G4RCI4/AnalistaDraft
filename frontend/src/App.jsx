@@ -8,6 +8,7 @@ import PartidoPage from "./components/PartidoPage";
 import Recomendaciones from "./components/Recomendaciones";
 import EnVivo from "./components/EnVivo";
 import Tablas from "./components/Tablas";
+import VivoPage from "./components/VivoPage";
 import { nombreMercado } from "./mercados";
 import BoletoPanel from "./components/BoletoPanel";
 import { useBoleto } from "./hooks/useBoleto";
@@ -40,11 +41,13 @@ export default function App() {
   // Página de un partido: ?liga=…&partido=… (sirve el botón Atrás y los enlaces directos)
   const [partidoId, setPartidoId] = useState(() => parametro("partido"));
   const [verTablas, setVerTablas] = useState(() => parametro("vista") === "tablas"); // ?vista=tablas
+  const [vivoId, setVivoId] = useState(() => parametro("vivo")); // ?liga=…&vivo=… página de un partido en juego
   const scrollLista = useRef(0);
   useEffect(() => {
     const alNavegar = () => {
       setPartidoId(parametro("partido"));
       setVerTablas(parametro("vista") === "tablas");
+      setVivoId(parametro("vivo"));
     };
     window.addEventListener("popstate", alNavegar);
     return () => window.removeEventListener("popstate", alNavegar);
@@ -54,8 +57,8 @@ export default function App() {
     if (partidoId && data && !partido && dias < 14) setDias(14); // enlace a un partido más lejano
   }, [partidoId, data, partido, dias]);
   useEffect(() => {
-    window.scrollTo(0, partidoId || verTablas ? 0 : scrollLista.current);
-  }, [partidoId, verTablas]);
+    window.scrollTo(0, partidoId || verTablas || vivoId ? 0 : scrollLista.current);
+  }, [partidoId, verTablas, vivoId]);
 
   function abrirPartido(p) {
     scrollLista.current = window.scrollY;
@@ -67,6 +70,12 @@ export default function App() {
     window.history.pushState(null, "", window.location.pathname);
     setPartidoId(null);
     setVerTablas(false);
+    setVivoId(null);
+  }
+  function abrirVivo(p) {
+    scrollLista.current = window.scrollY;
+    window.history.pushState(null, "", `?liga=${encodeURIComponent(p.liga)}&vivo=${encodeURIComponent(p.id)}`);
+    setVivoId(p.id);
   }
   function abrirTablas() {
     if (!partidoId && !verTablas) scrollLista.current = window.scrollY;
@@ -109,9 +118,11 @@ export default function App() {
 
   return (
     <div className="app">
-      <NavBar enBoleto={boleto.piernas.length} base={partidoId || verTablas ? "/" : ""} onBoleto={() => setBoletoAbierto(true)} onTablas={abrirTablas} />
+      <NavBar enBoleto={boleto.piernas.length} base={partidoId || verTablas || vivoId ? "/" : ""} onBoleto={() => setBoletoAbierto(true)} onTablas={abrirTablas} />
 
-      {verTablas ? (
+      {vivoId ? (
+        <VivoPage liga={parametro("liga")} evento={vivoId} ligas={ligas} boleto={boleto} onVolver={volver} />
+      ) : verTablas ? (
         <Tablas ligas={ligas} ligaInicial={liga} onVolver={volver} />
       ) : partidoId ? (
         partido ? (
@@ -153,7 +164,7 @@ export default function App() {
           </div>
 
           {liga === VIVO ? (
-            <EnVivo liga={HOY} ligas={ligas} boleto={boleto} soloVivo />
+            <EnVivo liga={HOY} ligas={ligas} boleto={boleto} soloVivo onAbrir={abrirVivo} />
           ) : (
           <>
           {/* Tablero: filtro de días arriba de los partidos */}
@@ -186,7 +197,7 @@ export default function App() {
               {/* Partidos a la izquierda; lo más recomendable en una columna aparte a la derecha */}
               <div className="home-grid">
                 <section id="partidos" aria-labelledby="partidos-titulo">
-                  <EnVivo liga={liga} ligas={ligas} boleto={boleto} />
+                  <EnVivo liga={liga} ligas={ligas} boleto={boleto} onAbrir={abrirVivo} />
                   {data.partidos.length ? (
                     <div className="match-grid">
                       {data.partidos.map((p) => (
