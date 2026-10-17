@@ -3222,3 +3222,76 @@ body {
     height: 28px;
   }
 }
+
+/* ---------- animación de gol ---------- */
+
+.vivo-lista li {
+  position: relative;
+}
+
+.gol-aviso {
+  flex-basis: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3);
+  border-radius: var(--radius-md);
+  background: linear-gradient(120deg, var(--up), #34d399, var(--accent));
+  background-size: 200% 100%;
+  color: #ffffff;
+  animation: gol-entrada 0.6s var(--ease-brand), gol-brillo 1.2s linear infinite;
+}
+
+.gol-texto {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  animation: gol-latido 0.6s ease-in-out infinite alternate;
+}
+
+.gol-equipo {
+  font-weight: 800;
+  font-size: 1rem;
+}
+
+.con-gol .vivo-marcador {
+  background: var(--up);
+  color: #ffffff;
+  animation: gol-latido 0.6s ease-in-out infinite alternate;
+}
+
+@keyframes gol-entrada {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes gol-latido {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.12);
+  }
+}
+
+@keyframes gol-brillo {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gol-aviso,
+  .gol-texto,
+  .con-gol .vivo-marcador {
+    animation: none;
+  }
+}
