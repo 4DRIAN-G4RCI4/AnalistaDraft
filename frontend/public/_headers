@@ -4,7 +4,7 @@
   X-Content-Type-Options: nosniff
   Referrer-Policy: no-referrer
   Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'sha256-2iX0v75Xhm0DXc8RaFHvD6tB0xzqOcDvI2xIv2hD6+c=' 'sha256-v7ZxMLD/eotHE2hpzIobG0PKrj/t9xJeOk1Vp+bSX/0='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://a.espncdn.com; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'sha256-2iX0v75Xhm0DXc8RaFHvD6tB0xzqOcDvI2xIv2hD6+c=' 'sha256-v7ZxMLD/eotHE2hpzIobG0PKrj/t9xJeOk1Vp+bSX/0=' 'sha256-BkKP2XO6WOEc3kXOiLr2ZoY83hamalKjPY9xBcbXVuw='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://a.espncdn.com; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
 
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
