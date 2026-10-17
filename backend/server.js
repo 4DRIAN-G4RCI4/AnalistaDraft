@@ -53,10 +53,10 @@ async function previaCompleta(liga, p) {
         extras[cat] = { esperado, probs: mercadosConteo(cat, esperado) };
       }
     }
-    return { extras, forma: { local: sl, visita: sv }, alineacion: pr.alineacion, titulares: pr.titulares };
+    return { extras, forma: { local: sl, visita: sv }, alineacion: pr.alineacion, titulares: pr.titulares, alineaciones: pr.alineaciones };
   } catch (e) {
     console.warn(`Sin previa de ${p.id}: ${e.message}`);
-    return { extras: {}, forma: null, alineacion: {}, titulares: {} };
+    return { extras: {}, forma: null, alineacion: {}, titulares: {}, alineaciones: {} };
   }
 }
 
@@ -212,14 +212,30 @@ function mercadoDeMomios(m) {
 
 // Sugerencias en vivo: goles esperados de antes del partido (de los momios) reducidos al tiempo que queda.
 const GOLES_SIN_MOMIOS = { local: 1.4, visita: 1.15 };
+// shortcut: factores redondos por roja (los estudios dan ~-30% propio / +25-45% rival); calibrar con resultados propios.
+const ROJA_PROPIA = 0.7, ROJA_RIVAL = 1.3;
 function analizarVivo(p) {
   const mercado = p.momios ? mercadoDeMomios(p.momios) : {};
-  for (const k of Object.keys(mercado)) if (!/^(Local|Empate|Visita|Más de d.5 goles|Menos de d.5 goles)$/.test(k)) delete mercado[k];
-  const goles = ajustarAMercado(mercado, GOLES_SIN_MOMIOS) ?? GOLES_SIN_MOMIOS;
+  for (const k of Object.keys(mercado)) if (!/^(Local|Empate|Visita|Más de \d\.5 goles|Menos de \d\.5 goles)$/.test(k)) delete mercado[k];
+  const base = ajustarAMercado(mercado, GOLES_SIN_MOMIOS) ?? GOLES_SIN_MOMIOS;
+  // Expulsiones: cada roja baja ~30% los goles del que se queda con uno menos y sube ~30% los del rival
+  const rojas = { local: p.eventos.filter(e => e.tipo === 'roja' && e.local).length, visita: p.eventos.filter(e => e.tipo === 'roja' && !e.local).length };
+  const goles = {
+    local: base.local * ROJA_PROPIA ** rojas.local * ROJA_RIVAL ** rojas.visita,
+    visita: base.visita * ROJA_PROPIA ** rojas.visita * ROJA_RIVAL ** rojas.local,
+  };
   const { probs, quedan } = mercadosVivo(goles.local, goles.visita, p.local.goles, p.visita.goles, p.jugado);
   const nombre = k => k.replace(/\bLocal\b/, p.local.nombre).replace(/\bVisita\b/, p.visita.nombre);
   const faltan = Math.max(0, Math.round(90 - p.jugado));
-  const razon = `Quedan ~${faltan} min y se esperan ${(quedan.local + quedan.visita).toFixed(1)} goles más (${p.local.nombre} ${quedan.local.toFixed(1)}, ${p.visita.nombre} ${quedan.visita.toFixed(1)}).`;
+  const avisos = [];
+  for (const [lado, e, rival] of [['local', p.local, p.visita], ['visita', p.visita, p.local]]) {
+    if (rojas[lado]) avisos.push(`${e.nombre} juega con ${rojas[lado] === 1 ? 'uno' : rojas[lado]} menos: se le calculan ~${Math.round((1 - ROJA_PROPIA ** rojas[lado]) * 100)}% menos goles y a ${rival.nombre} más.`);
+    const amarillas = p.eventos.filter(x => x.tipo === 'amarilla' && x.local === (lado === 'local')).length;
+    if (amarillas >= 3) avisos.push(`${e.nombre} lleva ${amarillas} amarillas: juego brusco, más riesgo de una expulsión.`);
+  }
+  const vaPerdiendo = p.local.goles === p.visita.goles ? null : p.local.goles < p.visita.goles ? ['local', p.local] : ['visita', p.visita];
+  if (vaPerdiendo) avisos.push(`Remontada de ${vaPerdiendo[1].nombre} (ganarlo): ${Math.round(probs[vaPerdiendo[0] === 'local' ? 'Gana Local' : 'Gana Visita'] * 100)}%.`);
+  const razon = [`Quedan ~${faltan} min y se esperan ${(quedan.local + quedan.visita).toFixed(1)} goles más (${p.local.nombre} ${quedan.local.toFixed(1)}, ${p.visita.nombre} ${quedan.visita.toFixed(1)}).`, ...avisos].join(' ');
   const sugerencias = Object.entries(probs)
     .filter(([, x]) => x >= 0.6 && x <= 0.85) // más de 85% en vivo paga casi nada
     .sort((a, b) => b[1] - a[1])
