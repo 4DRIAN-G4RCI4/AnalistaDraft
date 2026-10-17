@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { linkSeguro, momio, pct } from "../format";
 import AddButton from "./AddButton";
 import Ganador from "./Ganador";
@@ -43,13 +43,33 @@ const CADA = 60e3;
 // Franja con los partidos que se están jugando ahora: marcador y minuto, se actualiza cada minuto.
 export default function EnVivo({ liga, ligas, boleto }) {
   const [partidos, setPartidos] = useState([]);
+  const [goles, setGoles] = useState({}); // id del partido -> nombre del equipo que acaba de anotar
+  const antes = useRef(null); // marcadores del refresco anterior
+
+  // Compara con el refresco anterior: si un equipo sumó goles, se anima ~8 s.
+  function actualizar(lista) {
+    const previos = antes.current;
+    antes.current = Object.fromEntries(lista.map((p) => [p.id, [p.local.goles, p.visita.goles]]));
+    if (!previos) return setPartidos(lista); // la primera carga no anima goles viejos
+    const nuevos = {};
+    for (const p of lista) {
+      const [l, v] = previos[p.id] ?? [p.local.goles, p.visita.goles];
+      if (p.local.goles > l) nuevos[p.id] = p.local.nombre;
+      else if (p.visita.goles > v) nuevos[p.id] = p.visita.nombre;
+    }
+    setPartidos(lista);
+    if (Object.keys(nuevos).length) {
+      setGoles((g) => ({ ...g, ...nuevos }));
+      setTimeout(() => setGoles((g) => Object.fromEntries(Object.entries(g).filter(([id]) => !(id in nuevos)))), 8000);
+    }
+  }
 
   useEffect(() => {
     let vivo = true;
     const cargar = () =>
       fetch("/api/envivo")
         .then((r) => (r.ok ? r.json() : []))
-        .then((x) => vivo && setPartidos(Array.isArray(x) ? x : []))
+        .then((x) => vivo && actualizar(Array.isArray(x) ? x : []))
         .catch(() => {});
     cargar();
     const t = setInterval(cargar, CADA);
@@ -79,7 +99,13 @@ export default function EnVivo({ liga, ligas, boleto }) {
       </div>
       <ul className="vivo-lista">
         {lista.map((p) => (
-          <li key={p.id}>
+          <li key={p.id} className={goles[p.id] ? "con-gol" : ""}>
+            {goles[p.id] && (
+              <div className="gol-aviso" role="status">
+                <span className="gol-texto">¡GOOOL!</span>
+                <span className="gol-equipo">{goles[p.id]}</span>
+              </div>
+            )}
             {liga === "hoy" && <span className="match-liga">{ligas[p.liga]?.nombre}</span>}
             <Equipo e={p.local} />
             <b className="vivo-marcador">
