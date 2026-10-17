@@ -5,22 +5,15 @@ const pct = p => `${Math.round(p * 100)}%`;
 
 const ETIQUETA = { tiempos: 'Tiempos', corners: 'Corners', tarjetas: 'Tarjetas', tirosPuerta: 'Tiros a puerta', tiros: 'Tiros' };
 
-// Lo primero que se muestra: la apuesta más probable, la de valor y la mejor de corners/tarjetas/tiros.
+// Lo primero que se muestra: la de valor y lo más recomendable entre todos los mercados.
 function destacadas(p) {
-  const probable = seleccionSugerida(p.probs);
   const modelo = p.modelo ?? p.probs;
   const valor = Object.entries(p.mercado)
     .map(([m, c]) => ({ mercado: m, prob: p.probs[m], cuota: c.cuota, ventaja: modelo[m] - c.prob }))
     .filter(esValor)
     .sort((a, b) => b.ventaja - a.ventaja)[0] ?? null;
-  const extra = Object.entries(p.extras ?? {})
-    .map(([cat, e]) => ({ categoria: cat, ...seleccionSugerida(e.probs) }))
-    .filter(x => x.mercado)
-    .sort((a, b) => b.prob - a.prob)[0] ?? null;
   return {
-    probable: probable && { ...probable, cuota: p.mercado[probable.mercado]?.cuota ?? null },
     valor,
-    extra,
     lista: recomendadasPartido(p),
   };
 }

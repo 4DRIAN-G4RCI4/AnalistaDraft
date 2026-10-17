@@ -15,3 +15,8 @@ services:
       # Opcional: key gratis de https://the-odds-api.com para comparar varias casas
       - key: ODDS_API_KEY
         sync: false
+      # Registro de aciertos (Supabase): URL del proyecto y service_role key; sin ellas queda apagado
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false

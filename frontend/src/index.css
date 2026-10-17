@@ -3602,3 +3602,66 @@ body {
     display: none;
   }
 }
+
+.actualizando {
+  color: var(--accent);
+  animation: pulse-dot 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .actualizando {
+    animation: none;
+  }
+}
+
+/* ---------- aciertos reales ---------- */
+
+.aciertos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+.acierto-total {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.acierto-grande {
+  font-family: var(--font-display);
+  font-size: 3rem;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--up);
+}
+
+.acierto-barra {
+  position: relative;
+  height: 10px;
+  border-radius: var(--radius-full);
+  background: var(--surface-raised);
+}
+
+.acierto-barra i {
+  display: block;
+  height: 100%;
+  border-radius: var(--radius-full);
+}
+
+.acierto-barra i.bien {
+  background: var(--up);
+}
+
+.acierto-barra i.mal {
+  background: var(--warn);
+}
+
+/* marca de lo que dijimos */
+.acierto-barra b {
+  position: absolute;
+  top: -3px;
+  width: 2px;
+  height: 16px;
+  background: var(--text);
+}
