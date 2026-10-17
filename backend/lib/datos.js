@@ -146,6 +146,19 @@ export const partidos = (liga, dias) => memo(`partidos:${liga}:${dias}`, TTL.par
     });
 });
 
+// Partidos en juego ahora mismo: marcador y minuto, refrescados cada minuto (sin análisis).
+export const enVivo = liga => memo(`envivo:${liga}`, 60e3, async () => {
+  const j = await json(`${ESPN}/site/v2/sports/soccer/${liga}/scoreboard`, 60e3, `envivo_${liga}`);
+  return j.events.filter(e => e.status.type.state === 'in').map(e => {
+    const c = e.competitions[0];
+    const eq = lado => {
+      const t = c.competitors.find(x => x.homeAway === lado);
+      return { nombre: t.team.displayName, logo: t.team.logo, goles: Number(t.score) || 0 };
+    };
+    return { id: e.id, liga, minuto: e.status.type.shortDetail, local: eq('home'), visita: eq('away') };
+  });
+});
+
 export const noticias = liga => memo(`noticias:${liga}`, TTL.noticias, async () => {
   const j = await json(`${ESPN}/site/v2/sports/soccer/${liga}/news?lang=es&limit=50`, TTL.noticias);
   return j.articles.map(a => ({

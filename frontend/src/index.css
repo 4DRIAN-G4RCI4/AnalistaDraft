@@ -2750,3 +2750,72 @@ body {
 .boleto-drawer.open {
   transition: transform 0.3s var(--ease-brand), visibility 0s;
 }
+
+/* ---------- en vivo ---------- */
+
+.en-vivo {
+  margin-bottom: var(--sp-4);
+  border-color: color-mix(in srgb, var(--down) 45%, var(--border));
+}
+
+.en-vivo h2 {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  color: var(--down);
+}
+
+.vivo-punto {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--down);
+  animation: pulse-dot 1.4s ease-in-out infinite;
+}
+
+.vivo-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.vivo-lista li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2) var(--sp-3);
+  padding: var(--sp-2) 0;
+  border-bottom: 1px solid var(--border-soft);
+  font-weight: 700;
+}
+
+.vivo-lista li:last-child {
+  border-bottom: none;
+}
+
+.vivo-equipo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.vivo-marcador {
+  font-family: var(--font-mono);
+  font-size: 1.1rem;
+  padding: 2px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+}
+
+.vivo-minuto {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--down);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vivo-punto {
+    animation: none;
+  }
+}
