@@ -115,9 +115,9 @@ test('destacadas: más probable, valor y mejor de corners/tarjetas/tiros', () =>
     extras: { corners: { esperado: { local: 5, visita: 4 }, probs: { 'Más de 7.5 corners': 0.7, 'Más de 6.5 corners': 0.95 } } },
   });
   const d = r.destacadas;
-  assert.ok(d.probable.prob <= 0.85 && d.probable.prob >= 0.6);
+  assert.ok(d.lista.every(x => x.prob <= 0.85 && x.prob >= 0.6));
   assert.equal(d.valor.mercado, 'Local');
-  assert.equal(d.extra.mercado, 'Más de 7.5 corners'); // 95% se descarta por microscópica
+  assert.equal(d.lista.find(x => x.categoria === 'corners').mercado, 'Más de 7.5 corners'); // 95% se descarta por microscópica
   assert.ok(r.datos.some(x => x.startsWith('Corners: se esperan 9.0')));
 });
 
