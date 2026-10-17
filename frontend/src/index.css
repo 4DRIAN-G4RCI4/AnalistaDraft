@@ -3419,3 +3419,7 @@ body {
   color: var(--down);
   border-color: color-mix(in srgb, var(--down) 45%, var(--border));
 }
+
+.tabla-grupo + .tabla-grupo {
+  margin-top: var(--sp-5);
+}
