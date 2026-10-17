@@ -89,8 +89,9 @@ function jugadoresEquipo(partidos, equipoId) {
 // Promedios a favor y en contra de un equipo en sus últimos partidos, y la lista de resultados.
 export async function estadisticasEquipo(liga, equipoId, eventos) {
   const ordenados = [...eventos].sort((a, b) => new Date(b.gameDate) - new Date(a.gameDate)); // más reciente primero
-  const conStats = (await Promise.all(ordenados.map(e => jugado(liga, e.id).catch(() => null))))
-    .filter(st => st?.[equipoId] && Object.keys(st).length === 2 && st[equipoId].tiros > 0); // sin boxscore = sin datos
+  const valido = st => st?.[equipoId] && Object.keys(st).length === 2 && st[equipoId].tiros > 0; // sin boxscore = sin datos
+  const porPartido = await Promise.all(ordenados.map(e => jugado(liga, e.id).catch(() => null)));
+  const conStats = porPartido.filter(valido);
   const rival = st => Object.entries(st).find(([id]) => id !== equipoId)[1];
   const promedio = f => conStats.reduce((a, st) => a + f(st), 0) / conStats.length;
   const suma = f => conStats.reduce((a, st) => a + f(st), 0);
@@ -105,9 +106,16 @@ export async function estadisticasEquipo(liga, equipoId, eventos) {
     tirosPuertaEquipo: suma(st => st[equipoId].tirosPuerta),
     golesEquipo: suma(st => st[equipoId].goles),
     jugadores: jugadoresEquipo(conStats, equipoId),
-    resultados: ordenados.map(e => ({
-      fecha: e.gameDate, rival: e.opponent?.displayName ?? '', marcador: e.score, resultado: e.gameResult,
-      local: e.atVs === 'vs', competicion: e.leagueAbbreviation ?? '',
-    })),
+    resultados: ordenados.map((e, i) => {
+      const [a, b] = String(e.score ?? '').split('-').map(Number); // el marcador viene local-visita
+      const local = e.atVs === 'vs';
+      const st = valido(porPartido[i]) ? porPartido[i] : null;
+      return {
+        fecha: e.gameDate, rival: e.opponent?.displayName ?? '', marcador: e.score, resultado: e.gameResult,
+        local, competicion: e.leagueAbbreviation ?? '',
+        gf: local ? a : b, gc: local ? b : a,
+        corners: st ? st[equipoId].corners + rival(st).corners : null,
+      };
+    }),
   };
 }
