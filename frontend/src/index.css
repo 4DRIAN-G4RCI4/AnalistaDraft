@@ -3408,3 +3408,14 @@ body {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
 }
+
+/* ---------- partidos en vivo compactos ---------- */
+
+.vivo-desplegar {
+  flex-basis: 100%;
+}
+
+.news-filter-bar .coin-filter-chip:first-child:not(.active) {
+  color: var(--down);
+  border-color: color-mix(in srgb, var(--down) 45%, var(--border));
+}
