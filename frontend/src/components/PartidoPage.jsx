@@ -247,6 +247,7 @@ export default function PartidoPage({ p, boleto, onVolver }) {
       </section>
 
       <div className="partido-grid">
+        <div className="partido-lateral">
         <section className="panel">
           <div className="panel-head">
             <h2>Mercados</h2>
@@ -317,6 +318,17 @@ export default function PartidoPage({ p, boleto, onVolver }) {
           {soloEst && <p className="tab-nota">{NOTA[tab] ?? NOTA.otros}</p>}
         </section>
 
+          <section className="panel">
+            <div className="panel-head">
+              <h2>Noticias</h2>
+              <span className="panel-sub">{p.noticias.length}</span>
+            </div>
+            <Noticias noticias={p.noticias} />
+          </section>
+
+
+        </div>
+
         <div className="partido-lateral">
           <section className="panel">
             <div className="panel-head">
@@ -325,32 +337,27 @@ export default function PartidoPage({ p, boleto, onVolver }) {
             <Puntos fuertes={r.fuertes} alertas={r.alertas} datos={r.datos} balance={[r.balance]} />
           </section>
 
-          <section className="panel">
-            <div className="panel-head">
-              <h2>Últimos partidos</h2>
-              <span className="panel-sub">incluye copas</span>
-            </div>
-            <Forma p={p} />
-          </section>
 
-          <section className="panel">
-            <div className="panel-head">
-              <h2>Qué se habría ganado</h2>
-              <span className="panel-sub">en sus últimos partidos</span>
-            </div>
-            <p className="tab-nota">Apuestas comunes que se cumplieron en cada partido reciente. Que se haya cumplido antes no garantiza que se repita.</p>
-            <Historial p={p} />
-          </section>
 
-          <section className="panel">
-            <div className="panel-head">
-              <h2>Noticias</h2>
-              <span className="panel-sub">{p.noticias.length}</span>
-            </div>
-            <Noticias noticias={p.noticias} />
-          </section>
         </div>
       </div>
+
+      <section className="panel">
+        <div className="panel-head">
+          <h2>Últimos partidos</h2>
+          <span className="panel-sub">incluye copas</span>
+        </div>
+        <Forma p={p} />
+      </section>
+
+      <section className="panel historial-panel">
+        <div className="panel-head">
+          <h2>Qué se habría ganado</h2>
+          <span className="panel-sub">en sus últimos partidos</span>
+        </div>
+        <p className="tab-nota">Apuestas comunes que se cumplieron en cada partido reciente. Que se haya cumplido antes no garantiza que se repita.</p>
+        <Historial p={p} />
+      </section>
     </div>
   );
 }
