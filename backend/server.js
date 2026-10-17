@@ -256,6 +256,10 @@ http.createServer(async (req, res) => {
   try {
     if (url.pathname.startsWith('/api/') && excedeLimite(req)) return enviar(res, 429, { error: 'Demasiadas consultas, espera un minuto.' });
     if (url.pathname === '/api/ligas') return enviar(res, 200, LIGAS);
+    if (url.pathname === '/api/tablas') {
+      const r = await Promise.allSettled(Object.keys(LIGAS).map(tabla)); // una liga caída no tumba las demás
+      return enviar(res, 200, Object.fromEntries(Object.keys(LIGAS).map((l, i) => [l, r[i].status === 'fulfilled' ? r[i].value : null])));
+    }
     if (url.pathname === '/api/alineacion') {
       const liga = url.searchParams.get('liga'), evento = url.searchParams.get('evento') ?? '';
       if (!Object.hasOwn(LIGAS, liga) || !/^\d{1,12}$/.test(evento)) return enviar(res, 400, { error: 'Partido inválido' });

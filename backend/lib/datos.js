@@ -115,7 +115,11 @@ export const tabla = liga => memo(`tabla:${liga}`, TTL.tabla, async () => {
   const j = await json(`${ESPN}/v2/sports/soccer/${liga}/standings`, TTL.tabla);
   return j.children[0].standings.entries.map(e => {
     const s = Object.fromEntries(e.stats.map(x => [x.name, x.value]));
-    return { id: e.team.id, nombre: e.team.displayName, pj: s.gamesPlayed, gf: s.pointsFor, gc: s.pointsAgainst, pts: s.points, pos: s.rank };
+    return {
+      id: e.team.id, nombre: e.team.displayName, pj: s.gamesPlayed, gf: s.pointsFor, gc: s.pointsAgainst, pts: s.points, pos: s.rank,
+      g: s.wins, e: s.ties, p: s.losses, logo: e.team.logos?.[0]?.href ?? null,
+      zona: e.note ? { texto: e.note.description, color: e.note.color } : null, // p. ej. Champions, descenso
+    };
   });
 });
 
