@@ -8,6 +8,7 @@ import { golesEsperados, mercados, decimal, sinMargen, armarParlays, ajustarAMer
 import { previa, estadisticasEquipo, CATEGORIAS } from './lib/stats.js';
 import { eventosLiga, buscarEvento, consenso } from './lib/cuotas.js';
 import { resumenPartido } from './lib/analisis.js';
+import { hayDB, guardarPredicciones, revisarPendientes, aciertos } from './lib/aciertos.js';
 
 const PORT = Number(process.env.PORT) || 4000; // el frontend (Vite) hace proxy de /api a este puerto
 const HOST = process.env.HOST || '127.0.0.1'; // en producción (Render) HOST=0.0.0.0
@@ -70,6 +71,7 @@ async function contextoLiga(liga) {
 async function analizar(liga, dias) {
   const [ctx, prox] = await Promise.all([contextoLiga(liga), partidos(liga, dias)]);
   const analizados = await Promise.all(prox.map(p => analizarPartido(liga, p, ctx)));
+  guardarPredicciones(analizados); // para medir después el % de acierto real (no espera: no frena la respuesta)
   return { liga: LIGAS[liga].nombre, media: ctx.media, actualizado: new Date().toISOString(), partidos: analizados, parlays: armarParlays(analizados) };
 }
 
@@ -113,11 +115,11 @@ async function analizarPartido(liga, p, { tbl, news, eventos, media }) {
       visita: probGoleadores(f?.visita, esperadoDe('visita'), titulares[p.visita.id]),
     };
     if (f) for (const lado of ['local', 'visita']) delete f[lado].jugadores; // ya resumidos en goleadores
-    const equipo = (e, t, v) => ({ ...e, pos: t.pos ?? null, pj: t.pj, gf: t.gf, gc: t.gc, valor: v?.valor ?? null, jugadores: v?.jugadores ?? null, clubTM: v?.nombre ?? null });
+    const equipo = (e, t, v) => ({ ...e, pos: t.pos ?? null, pj: t.pj, gf: t.gf, gc: t.gc, valor: v?.valor ?? null });
     const analizado = {
       id: p.id, liga, fecha: p.fecha, titulo: `${p.local.nombre} vs ${p.visita.nombre}`,
       local: equipo(p.local, tl, vl), visita: equipo(p.visita, tv, vv),
-      golesEsperados: goles, golesModelo, ajustadoACasas: Boolean(golesCasas), probs, modelo, marcador, mercado, casa,
+      golesEsperados: goles, ajustadoACasas: Boolean(golesCasas), probs, modelo, marcador, mercado, casa,
       noticias: news.filter(n => n.equipos.includes(p.local.id) || n.equipos.includes(p.visita.id)).slice(0, 6),
       ...pr,
       goleadores,
@@ -249,7 +251,7 @@ function analizarVivo(p) {
     .map(([k, prob]) => ({ mercado: nombre(k), prob }));
   const { momios, ...resto } = p;
   const ganador = { local: probs['Gana Local'], empate: probs.Empate, visita: probs['Gana Visita'] };
-  return { ...resto, conMomios: Boolean(momios), sugerencias, razon, ganador };
+  return { ...resto, sugerencias, razon, ganador };
 }
 
 const enviar = (res, code, data) => {
@@ -262,6 +264,7 @@ http.createServer(async (req, res) => {
   try {
     if (url.pathname.startsWith('/api/') && excedeLimite(req)) return enviar(res, 429, { error: 'Demasiadas consultas, espera un minuto.' });
     if (url.pathname === '/api/ligas') return enviar(res, 200, LIGAS);
+    if (url.pathname === '/api/aciertos') return enviar(res, 200, await aciertos());
     if (url.pathname === '/api/tablas') {
       const r = await Promise.allSettled(Object.keys(LIGAS).map(tabla)); // una liga caída no tumba las demás
       return enviar(res, 200, Object.fromEntries(Object.keys(LIGAS).map((l, i) => [l, r[i].status === 'fulfilled' ? r[i].value : null])));
@@ -290,8 +293,11 @@ http.createServer(async (req, res) => {
       return pre ? enviar(res, 200, pre) : enviar(res, 404, { error: 'No se encontró el partido' });
     }
     if (url.pathname === '/api/envivo') {
-      const r = await Promise.allSettled(Object.keys(LIGAS).map(enVivo)); // una liga caída no tumba las demás
-      return enviar(res, 200, r.flatMap(x => (x.status === 'fulfilled' ? x.value : [])).map(analizarVivo));
+      // calculado una vez por minuto para todos los visitantes, no en cada petición
+      return enviar(res, 200, await memo('envivo', 60e3, async () => {
+        const r = await Promise.allSettled(Object.keys(LIGAS).map(enVivo)); // una liga caída no tumba las demás
+        return r.flatMap(x => (x.status === 'fulfilled' ? x.value : [])).map(analizarVivo);
+      }));
     }
     if (url.pathname === '/api/analisis') {
       const liga = url.searchParams.get('liga');
@@ -312,5 +318,12 @@ http.createServer(async (req, res) => {
 
 // Precalentar "Hoy" (las 6 ligas) al arrancar: en Render el arranque lo dispara la primera visita, así las siguientes ya lo encuentran listo
 analisisListo(HOY, 1).catch(e => console.warn(`Precalentamiento: ${e.message}`));
+
+// Revisar predicciones de partidos terminados al arrancar y cada 30 min mientras el servidor esté despierto
+if (hayDB()) {
+  const revisar = () => revisarPendientes().then(n => n && console.log(`Aciertos: ${n} predicciones revisadas`), e => console.warn(`Revisión de aciertos: ${e.message}`));
+  setTimeout(revisar, 30e3);
+  setInterval(revisar, 30 * 60e3);
+}
 
 limpiarDisco().then(n => n && console.log(`Caché: ${n} archivos viejos borrados`), e => console.warn(`No se pudo limpiar la caché: ${e.message}`));
