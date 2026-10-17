@@ -36,7 +36,11 @@ const MAX_MEMO = 3000; // entradas en memoria; arriba de esto se tiran las venci
 // Guarda la promesa (no el resultado) para que llamadas simultáneas compartan una sola carga.
 export function memo(clave, ms, fn) {
   const c = cache.get(clave);
-  if (c && Date.now() - c.t < c.ms) return c.v;
+  if (c && Date.now() - c.t < c.ms) {
+    cache.delete(clave); // al final del Map: la poda tira primero lo menos usado
+    cache.set(clave, c);
+    return c.v;
+  }
   if (cache.size >= MAX_MEMO) podar();
   const v = fn();
   cache.set(clave, { t: Date.now(), ms, v });
@@ -153,9 +157,11 @@ function partidoDe(ev) {
   return { id: ev.id, fecha: ev.date, local: eq('home'), visita: eq('away'), momios: momiosDe(c) };
 }
 
-// Un partido concreto de hoy, ayer o mañana (UTC), en cualquier estado: para su página en vivo y su prepartido.
-export async function buscarPartido(liga, evento) {
-  const fechas = [-1, 0, 1].map(i => new Date(Date.now() + i * 864e5).toISOString().slice(0, 10).replaceAll('-', ''));
+// Un partido concreto del día de `cuando` (o el anterior o siguiente, UTC), en cualquier estado:
+// para su página en vivo, su prepartido y para revisar predicciones de partidos ya jugados.
+export async function buscarPartido(liga, evento, cuando = Date.now()) {
+  const t = new Date(cuando).getTime();
+  const fechas = [-1, 0, 1].map(i => new Date(t + i * 864e5).toISOString().slice(0, 10).replaceAll('-', ''));
   for (const f of fechas) {
     const j = await json(`${ESPN}/site/v2/sports/soccer/${liga}/scoreboard?dates=${f}`, 60e3, `partido_${liga}_${f}`);
     const ev = j.events?.find(e => e.id === evento);
@@ -191,7 +197,7 @@ function vivoDe(e, liga) {
       const st = n => Number(t.statistics?.find(x => x.name === n)?.displayValue) || 0;
       return {
         id: t.team.id, nombre: t.team.displayName, logo: t.team.logo, goles: Number(t.score) || 0,
-        corners: st('wonCorners'), tirosPuerta: st('shotsOnTarget'), tiros: st('totalShots'), posesion: st('possessionPct'),
+        corners: st('wonCorners'), tirosPuerta: st('shotsOnTarget'), tiros: st('totalShots'),
       };
     };
     const local = c.competitors.find(x => x.homeAway === 'home')?.team.id;

@@ -1,15 +1,17 @@
 import { useEffect, useState } from "react";
-import { pedir } from "../hooks/useAnalisis";
+import { hayGuardado, pedir } from "../hooks/useAnalisis";
 
 const LENTO_MS = 3000;
 
 // El backend gratuito de Render se duerme tras 15 min sin tráfico y tarda ~1 min en despertar.
 // Mientras tanto se muestra esta pantalla en vez de la app vacía (igual que en Tradia).
 export default function ServerWakeGate({ children }) {
-  const [listo, setListo] = useState(false);
+  // si ya hay datos guardados en el navegador se muestran de una vez y la app se actualiza por detrás
+  const [listo, setListo] = useState(hayGuardado);
   const [lento, setLento] = useState(false);
 
   useEffect(() => {
+    if (listo) return;
     const ctrl = new AbortController();
     const timer = setTimeout(() => setLento(true), LENTO_MS);
     pedir("/api/ligas", ctrl.signal, () => setLento(true))
@@ -22,7 +24,7 @@ export default function ServerWakeGate({ children }) {
       clearTimeout(timer);
       ctrl.abort();
     };
-  }, []);
+  }, [listo]);
 
   if (listo) return children;
 
