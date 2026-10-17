@@ -132,30 +132,49 @@ export const partidos = (liga, dias) => memo(`partidos:${liga}:${dias}`, TTL.par
         const t = c.competitors.find(x => x.homeAway === lado);
         return { id: t.team.id, nombre: t.team.displayName, logo: t.team.logo, forma: t.form || '' };
       };
-      const o = c.odds?.[0];
-      const ml = o?.moneyline, tot = o?.total;
-      const ult = x => x?.close?.odds ?? x?.open?.odds;
-      return {
-        id: ev.id, fecha: ev.date, local: eq('home'), visita: eq('away'),
-        momios: o ? {
-          casa: o.provider?.displayName ?? o.provider?.name ?? 'Casa',
-          local: ult(ml?.home), empate: ult(ml?.draw), visita: ult(ml?.away),
-          linea: o.overUnder, mas: ult(tot?.over), menos: ult(tot?.under),
-        } : null,
-      };
+      return { id: ev.id, fecha: ev.date, local: eq('home'), visita: eq('away'), momios: momiosDe(c) };
     });
 });
 
-// Partidos en juego ahora mismo: marcador y minuto, refrescados cada minuto (sin análisis).
+// Momios de la casa (DraftKings) que trae el scoreboard de ESPN; siguen ahí durante el partido.
+function momiosDe(c) {
+  const o = c.odds?.[0];
+  if (!o) return null;
+  const ml = o.moneyline, tot = o.total;
+  const ult = x => x?.close?.odds ?? x?.open?.odds;
+  return {
+    casa: o.provider?.displayName ?? o.provider?.name ?? 'Casa',
+    local: ult(ml?.home), empate: ult(ml?.draw), visita: ult(ml?.away),
+    linea: o.overUnder, mas: ult(tot?.over), menos: ult(tot?.under),
+  };
+}
+
+// Partidos en juego ahora mismo: marcador y minuto, refrescados cada minuto.
 export const enVivo = liga => memo(`envivo:${liga}`, 60e3, async () => {
   const j = await json(`${ESPN}/site/v2/sports/soccer/${liga}/scoreboard`, 60e3, `envivo_${liga}`);
   return j.events.filter(e => e.status.type.state === 'in').map(e => {
     const c = e.competitions[0];
     const eq = lado => {
       const t = c.competitors.find(x => x.homeAway === lado);
-      return { nombre: t.team.displayName, logo: t.team.logo, goles: Number(t.score) || 0 };
+      const st = n => Number(t.statistics?.find(x => x.name === n)?.displayValue) || 0;
+      return {
+        id: t.team.id, nombre: t.team.displayName, logo: t.team.logo, goles: Number(t.score) || 0,
+        corners: st('wonCorners'), tirosPuerta: st('shotsOnTarget'), tiros: st('totalShots'), posesion: st('possessionPct'),
+      };
     };
-    return { id: e.id, liga, minuto: e.status.type.shortDetail, local: eq('home'), visita: eq('away') };
+    const local = c.competitors.find(x => x.homeAway === 'home')?.team.id;
+    // goles y tarjetas con minuto y jugador
+    const eventos = (c.details ?? []).filter(d => d.scoringPlay || d.yellowCard || d.redCard).map(d => ({
+      tipo: d.scoringPlay ? (d.ownGoal ? 'autogol' : 'gol') : d.redCard ? 'roja' : 'amarilla',
+      minuto: d.clock?.displayValue ?? '', local: String(d.team?.id) === String(local),
+      jugador: (d.athletesInvolved ?? [])[0]?.displayName ?? '',
+    }));
+    return {
+      eventos,
+      id: e.id, liga, minuto: e.status.type.shortDetail, local: eq('home'), visita: eq('away'),
+      jugado: Math.min(90, (e.status.clock ?? 0) / 60), descanso: e.status.type.name === 'STATUS_HALFTIME',
+      momios: momiosDe(c),
+    };
   });
 });
 

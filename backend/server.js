@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import zlib from 'node:zlib';
 import { LIGAS, tabla, partidos, noticias, valorPlantilla, memo, limpiarDisco, enVivo } from './lib/datos.js';
-import { golesEsperados, mercados, decimal, sinMargen, armarParlays, ajustarAMercado, combinarGoles, conteoEsperado, mercadosConteo, fraccion1T, mercadosTiempos, probGoleadores } from './lib/modelo.js';
+import { golesEsperados, mercados, decimal, sinMargen, armarParlays, ajustarAMercado, combinarGoles, conteoEsperado, mercadosConteo, fraccion1T, mercadosTiempos, probGoleadores, mercadosVivo } from './lib/modelo.js';
 import { previa, estadisticasEquipo, CATEGORIAS } from './lib/stats.js';
 import { eventosLiga, buscarEvento, consenso } from './lib/cuotas.js';
 import { resumenPartido } from './lib/analisis.js';
@@ -81,13 +81,7 @@ async function analizar(liga, dias) {
     const m = p.momios;
     if (!Object.keys(mercado).length && m) {
       casa = m.casa;
-      const c1x2 = [m.local, m.empate, m.visita].map(decimal);
-      sinMargen(c1x2)?.forEach((prob, i) => { mercado[['Local', 'Empate', 'Visita'][i]] = { cuota: c1x2[i], prob }; });
-      const lineas = [`Más de ${m.linea} goles`, `Menos de ${m.linea} goles`];
-      if (lineas[0] in modelo) {
-        const cou = [m.mas, m.menos].map(decimal);
-        sinMargen(cou)?.forEach((prob, i) => { mercado[lineas[i]] = { cuota: cou[i], prob }; });
-      }
+      mercado = mercadoDeMomios(m);
     }
     for (const k of Object.keys(mercado)) if (!(k in modelo)) delete mercado[k]; // líneas raras (p. ej. 2.75) que el modelo no cubre
 
@@ -206,6 +200,36 @@ function enviarAnalisis(req, res, { json, gzip }) {
   res.end(comprime ? gzip : json);
 }
 
+// Momios americanos de la casa -> { mercado: { cuota, prob sin margen } } (1X2 y la línea de goles)
+function mercadoDeMomios(m) {
+  const mercado = {};
+  const c1x2 = [m.local, m.empate, m.visita].map(decimal);
+  sinMargen(c1x2)?.forEach((prob, i) => { mercado[['Local', 'Empate', 'Visita'][i]] = { cuota: c1x2[i], prob }; });
+  const cou = [m.mas, m.menos].map(decimal);
+  sinMargen(cou)?.forEach((prob, i) => { mercado[[`Más de ${m.linea} goles`, `Menos de ${m.linea} goles`][i]] = { cuota: cou[i], prob }; });
+  return mercado;
+}
+
+// Sugerencias en vivo: goles esperados de antes del partido (de los momios) reducidos al tiempo que queda.
+const GOLES_SIN_MOMIOS = { local: 1.4, visita: 1.15 };
+function analizarVivo(p) {
+  const mercado = p.momios ? mercadoDeMomios(p.momios) : {};
+  for (const k of Object.keys(mercado)) if (!/^(Local|Empate|Visita|Más de d.5 goles|Menos de d.5 goles)$/.test(k)) delete mercado[k];
+  const goles = ajustarAMercado(mercado, GOLES_SIN_MOMIOS) ?? GOLES_SIN_MOMIOS;
+  const { probs, quedan } = mercadosVivo(goles.local, goles.visita, p.local.goles, p.visita.goles, p.jugado);
+  const nombre = k => k.replace(/\bLocal\b/, p.local.nombre).replace(/\bVisita\b/, p.visita.nombre);
+  const faltan = Math.max(0, Math.round(90 - p.jugado));
+  const razon = `Quedan ~${faltan} min y se esperan ${(quedan.local + quedan.visita).toFixed(1)} goles más (${p.local.nombre} ${quedan.local.toFixed(1)}, ${p.visita.nombre} ${quedan.visita.toFixed(1)}).`;
+  const sugerencias = Object.entries(probs)
+    .filter(([, x]) => x >= 0.6 && x <= 0.85) // más de 85% en vivo paga casi nada
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([k, prob]) => ({ mercado: nombre(k), prob }));
+  const { momios, ...resto } = p;
+  const ganador = { local: probs['Gana Local'], empate: probs.Empate, visita: probs['Gana Visita'] };
+  return { ...resto, conMomios: Boolean(momios), sugerencias, razon, ganador };
+}
+
 const enviar = (res, code, data) => {
   res.writeHead(code, { 'content-type': 'application/json; charset=utf-8' });
   res.end(JSON.stringify(data));
@@ -218,7 +242,7 @@ http.createServer(async (req, res) => {
     if (url.pathname === '/api/ligas') return enviar(res, 200, LIGAS);
     if (url.pathname === '/api/envivo') {
       const r = await Promise.allSettled(Object.keys(LIGAS).map(enVivo)); // una liga caída no tumba las demás
-      return enviar(res, 200, r.flatMap(x => (x.status === 'fulfilled' ? x.value : [])));
+      return enviar(res, 200, r.flatMap(x => (x.status === 'fulfilled' ? x.value : [])).map(analizarVivo));
     }
     if (url.pathname === '/api/analisis') {
       const liga = url.searchParams.get('liga');
