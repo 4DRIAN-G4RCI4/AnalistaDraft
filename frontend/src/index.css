@@ -1189,6 +1189,78 @@ html {
   background: var(--warn-dim);
 }
 
+/* Escudos de la pierna: dicen de qué equipo es sin gastar texto */
+.leg-escudos {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+.leg-escudos img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  border-radius: 50%;
+  background: var(--panel-2, rgba(128, 128, 128, 0.08));
+  padding: 1px;
+}
+.leg-escudos.par img + img { margin-left: -9px; } /* encimados, como en las casas */
+
+/* Barra de progreso de la pierna: cuánto va contra la línea que necesita */
+.leg-barra {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-top: 7px;
+}
+.leg-barra-pista {
+  position: relative;
+  flex: 1;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: var(--border-soft);
+}
+.leg-barra-llena {
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  border-radius: var(--radius-full);
+  background: var(--warn);
+  transition: width 0.4s ease;
+}
+.leg-barra-meta {
+  position: absolute;
+  top: -3px;
+  width: 2px;
+  height: 12px;
+  border-radius: 1px;
+  background: var(--text);
+  opacity: 0.6;
+}
+.leg-barra-valor {
+  flex-shrink: 0;
+  min-width: 26px;
+  padding: 1px 6px;
+  border-radius: var(--radius-full);
+  border: 1.5px solid currentColor;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1.35;
+  text-align: center;
+}
+.leg-barra.ok .leg-barra-valor { color: var(--up); }
+.leg-barra.ok .leg-barra-llena { background: var(--up); }
+.leg-barra.mal .leg-barra-valor { color: var(--down); }
+.leg-barra.mal .leg-barra-llena { background: var(--down); }
+.leg-barra.falta .leg-barra-valor { color: var(--warn); }
+.leg-barra-objetivo {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
 .parlay-live-badge {
   display: inline-flex;
   align-items: center;
