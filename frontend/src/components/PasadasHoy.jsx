@@ -5,14 +5,15 @@ import MatchCard from "./MatchCard";
 export default function PasadasHoy({ ligas, boleto, onAbrir, onVolver }) {
   const [partidos, setPartidos] = useState([]);
   const [cargando, setCargando] = useState(true);
+  const [despertando, setDespertando] = useState(false);
 
   useEffect(() => {
     const ctrl = new AbortController();
     setCargando(true);
-    pedir("/api/analisis?liga=hoy&dias=1", ctrl.signal, () => {})
+    pedir("/api/analisis?liga=hoy&dias=1", ctrl.signal, () => setDespertando(true))
       .then((j) => setPartidos(j.pasadas ?? []))
       .catch(() => {})
-      .finally(() => setCargando(false));
+      .finally(() => { setCargando(false); setDespertando(false); });
     return () => ctrl.abort();
   }, []);
 
@@ -28,7 +29,8 @@ export default function PasadasHoy({ ligas, boleto, onAbrir, onVolver }) {
       {cargando ? (
         <div className="panel state" aria-busy="true">
           <div className="server-wake-spinner" />
-          <span className="state-title">Cargando partidos finalizados…</span>
+          <span className="state-title">{despertando ? "Despertando el servidor…" : "Cargando partidos finalizados…"}</span>
+          {despertando && <span className="state-desc">El servidor estaba dormido, tarda ~1 minuto. No cierres la página.</span>}
         </div>
       ) : partidos.length === 0 ? (
         <div className="panel state">
