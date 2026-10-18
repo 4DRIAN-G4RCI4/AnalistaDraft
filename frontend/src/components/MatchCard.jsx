@@ -14,6 +14,12 @@ export default function MatchCard({ p, boleto, onAbrir, ligaNombre, finalizado =
         {fecha(p.fecha)}
       </div>
       <Enfrentamiento p={p} />
+      {finalizado && p.marcadorFinal && (
+        <div className="match-resultado-final">
+          <span className="match-goles-final">{p.marcadorFinal.local.goles} – {p.marcadorFinal.visita.goles}</span>
+          <span className="match-resultado-label">Resultado final</span>
+        </div>
+      )}
       <Ganador local={p.local.nombre} visita={p.visita.nombre} prob={{ local: p.probs.Local, empate: p.probs.Empate, visita: p.probs.Visita }} />
       <MejorApuesta p={p} boleto={boleto} />
       <button type="button" className="btn ver-mas" onClick={() => onAbrir(p)}>

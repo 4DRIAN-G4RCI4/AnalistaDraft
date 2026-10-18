@@ -2845,6 +2845,9 @@ body {
   font-weight: 700;
 }
 .match-finalizado { opacity: 0.88; }
+.match-resultado-final { display: flex; flex-direction: column; align-items: center; margin: var(--sp-2) 0; }
+.match-goles-final { font-size: 1.6rem; font-weight: 800; letter-spacing: .04em; color: var(--text); }
+.match-resultado-label { font-size: .7rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
 .match-finalizado-chip {
   display: inline-block;
   margin-right: var(--sp-2);
