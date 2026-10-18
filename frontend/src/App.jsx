@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import NavBar from "./components/NavBar";
 import Disclaimer from "./components/Disclaimer";
 import Footer from "./components/Footer";
@@ -17,6 +17,24 @@ import { useAnalisis, useLigas } from "./hooks/useAnalisis";
 const DIAS = [3, 7, 14];
 const HOY = "hoy"; // todos los partidos de hoy de todas las ligas
 const VIVO = "vivo"; // solo los partidos en juego, de todas las ligas
+
+// Partidos finalizados hoy: se guardan en localStorage con TTL de 24 h.
+const CLAVE_FIN = "analista-finalizados-hoy";
+const TTL_FIN = 24 * 60 * 60e3;
+
+function leerFinalizados() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(CLAVE_FIN));
+    if (!raw || Date.now() - raw.t > TTL_FIN) return [];
+    return raw.partidos ?? [];
+  } catch { return []; }
+}
+
+function guardarFinalizados(partidos) {
+  try {
+    localStorage.setItem(CLAVE_FIN, JSON.stringify({ t: Date.now(), partidos }));
+  } catch { /* sin espacio: no es crítico */ }
+}
 
 const parametro = (k) => new URLSearchParams(window.location.search).get(k);
 
@@ -37,6 +55,7 @@ export default function App() {
   const { data, loading, error, despertando, actualizando, refrescar } = useAnalisis(liga === VIVO ? HOY : liga, dias);
   const boleto = useBoleto();
   const [boletoAbierto, setBoletoAbierto] = useState(false);
+  const [finalizados, setFinalizados] = useState(leerFinalizados);
 
   // Página de un partido: ?liga=…&partido=… (sirve el botón Atrás y los enlaces directos)
   const [partidoId, setPartidoId] = useState(() => parametro("partido"));
@@ -52,13 +71,26 @@ export default function App() {
     window.addEventListener("popstate", alNavegar);
     return () => window.removeEventListener("popstate", alNavegar);
   }, []);
-  const partido = partidoId && data?.partidos.find((x) => x.id === partidoId);
+  const partido = partidoId && (data?.partidos.find((x) => x.id === partidoId) ?? finalizados.find((x) => x.id === partidoId));
   useEffect(() => {
     if (partidoId && data && !partido && dias < 14) setDias(14); // enlace a un partido más lejano
   }, [partidoId, data, partido, dias]);
   useEffect(() => {
     window.scrollTo(0, partidoId || vista || vivoId ? 0 : scrollLista.current);
   }, [partidoId, vista, vivoId]);
+
+  // Cuando llegan datos de Hoy, guardar los partidos finalizados (estado "post") en caché 24 h
+  useEffect(() => {
+    if (!data?.partidos || liga !== HOY) return;
+    const posts = data.partidos.filter((p) => p.estado === "post");
+    if (!posts.length) return;
+    // Merge: no pisar finalizados de ligas que no llegaron en este batch
+    const mapaActual = Object.fromEntries(finalizados.map((p) => [p.id, p]));
+    for (const p of posts) mapaActual[p.id] = p;
+    const merged = Object.values(mapaActual);
+    guardarFinalizados(merged);
+    setFinalizados(merged);
+  }, [data]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function abrirPartido(p) {
     scrollLista.current = window.scrollY;
@@ -127,7 +159,7 @@ export default function App() {
         <Tablas ligas={ligas} ligaInicial={liga} onVolver={volver} />
       ) : partidoId ? (
         partido ? (
-          <PartidoPage p={partido} boleto={boleto} onVolver={volver} />
+          <PartidoPage p={partido} boleto={boleto} onVolver={volver} vivoInicial={partido.marcadorFinal ?? null} />
         ) : error || (data && !loading && dias >= 14) ? (
           <div className="panel state state-error" role="alert">
             <span className="state-title">No se encontró el partido</span>
@@ -212,6 +244,18 @@ export default function App() {
                     <div className="panel state">
                       <span className="state-title">{liga === HOY ? "Hoy no hay partidos en estas ligas" : "No hay partidos programados"}</span>
                       <span className="state-desc">{liga === HOY ? "Elige una liga para ver sus próximos partidos." : "Prueba con un rango de días mayor."}</span>
+                    </div>
+                  )}
+                  {/* Finalizados hoy: partidos ya terminados del día, con sus parlays para revisar */}
+                  {liga === HOY && finalizados.length > 0 && (
+                    <div className="finalizados-hoy">
+                      <h3 className="section-title finalizados-titulo">Finalizados hoy</h3>
+                      <p className="muted parlays-nota">Partidos del día ya terminados. Ábrelos para ver si los parlays se cumplieron.</p>
+                      <div className="match-grid">
+                        {finalizados.map((p) => (
+                          <MatchCard key={p.id} p={p} boleto={boleto} onAbrir={abrirPartido} ligaNombre={ligas[p.liga]?.nombre ?? null} finalizado />
+                        ))}
+                      </div>
                     </div>
                   )}
                 </section>

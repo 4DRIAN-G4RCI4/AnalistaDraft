@@ -2844,6 +2844,20 @@ body {
   font-family: var(--font-ui);
   font-weight: 700;
 }
+.match-finalizado { opacity: 0.88; }
+.match-finalizado-chip {
+  display: inline-block;
+  margin-right: var(--sp-2);
+  padding: 1px 8px;
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--success, #22c55e) 15%, transparent);
+  color: var(--success, #22c55e);
+  font-family: var(--font-ui);
+  font-size: .75rem;
+  font-weight: 700;
+}
+.finalizados-hoy { margin-top: var(--sp-6); }
+.finalizados-titulo { margin-bottom: var(--sp-2); }
 
 /* al abrir, visible al instante (si no, el foco no puede entrar durante la transición) */
 .boleto-drawer.open {
