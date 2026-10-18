@@ -218,3 +218,47 @@ test('en vivo: el marcador y el tiempo que queda mandan', async () => {
   // ambos ya anotaron: no se ofrece
   assert.equal(mercadosVivo(1.5, 1.2, 1, 1, 50).probs['Ambos anotan'], undefined);
 });
+
+test('parlays del partido: factible de 5 piernas compatibles y soñador de buen pago', async () => {
+  const { armarParlaysPartido } = await import('./analisis.js');
+  const { probs } = mercados(2.1, 1.0);
+  const p = {
+    id: 'test-1',
+    titulo: 'Real Madrid vs Sevilla',
+    fecha: new Date().toISOString(),
+    local: { nombre: 'Real Madrid' },
+    visita: { nombre: 'Sevilla' },
+    probs,
+    mercado: {
+      'Local o empate': { cuota: 1.22, prob: 0.8 },
+      'Más de 1.5 goles': { cuota: 1.25, prob: 0.78 },
+      'Ambos anotan': { cuota: 1.85, prob: 0.52 },
+    },
+    golesEsperados: { local: 2.1, visita: 1.0 },
+    extras: {
+      corners: { esperado: { local: 6, visita: 4 }, probs: { 'Más de 7.5 corners': 0.76, 'Más de 8.5 corners': 0.58 } },
+      tarjetas: { esperado: { local: 2, visita: 2.5 }, probs: { 'Más de 2.5 tarjetas': 0.74, 'Más de 3.5 tarjetas': 0.54 } },
+      tiempos: { fraccion: 0.44, esperado: { local: 0.9, visita: 0.4 }, probs: { 'Más de 0.5 goles en 2T': 0.79, 'Gol en ambos tiempos': 0.56 } },
+      tirosPuerta: { esperado: { local: 6, visita: 3 }, probs: { 'Más de 6.5 tiros a puerta': 0.75 } },
+    },
+    goleadores: {
+      local: [{ nombre: 'Vinicius Jr', tiros: 16, tirosPuerta: 7, goles: 3, partidos: 5, prob: 0.46, puerta1: 0.78, tiros2: 0.7 }],
+      visita: [],
+    },
+  };
+
+  const { factible, sonador } = armarParlaysPartido(p);
+  assert.ok(factible, 'Debe generar parlay factible');
+  assert.equal(factible.piernas.length, 5, 'El parlay factible DEBE tener exactamente 5 piernas');
+  assert.equal(new Set(factible.piernas.map(x => x.categoria)).size, 5, 'Las 5 piernas deben ser de categorías distintas');
+  assert.ok(factible.prob > 0.1 && factible.prob < 0.6, 'Probabilidad combinada factible');
+  assert.ok(Math.abs(factible.prob - factible.piernas.reduce((a, x) => a * x.prob, 1)) < 1e-9);
+
+  assert.ok(sonador, 'Debe generar parlay soñador');
+  assert.ok(sonador.piernas.length >= 3 && sonador.piernas.length <= 5, 'Soñador debe tener entre 3 y 5 piernas');
+  assert.equal(new Set(sonador.piernas.map(x => x.categoria)).size, sonador.piernas.length);
+  // Opciones más factibles que riesgosas: prob >= 42%
+  assert.ok(sonador.piernas.every(x => x.prob >= 0.42), 'Cada pierna del soñador debe ser más factible que riesgosa');
+  assert.ok(sonador.cuotaJusta >= 3.0, 'El soñador debe pagar bien');
+});
+

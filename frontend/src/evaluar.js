@@ -25,14 +25,36 @@ export function evaluar(mercado, v) {
     case "Hay ganador (sin empate)": return alFinal(gl !== gv);
     case "Ambos anotan": return gl > 0 && gv > 0 ? "si" : fin ? "no" : "pendiente";
     case "No ambos anotan": return gl > 0 && gv > 0 ? "no" : fin ? "si" : "pendiente";
+    case "Gol en ambos tiempos": {
+      const g1 = goles(null, 1), g2 = goles(null, 2);
+      if (g1 > 0 && g2 > 0) return "si";
+      const paso1T = fin || v.descanso || v.jugado >= 45;
+      if (paso1T && g1 === 0) return "no";
+      return fin ? "no" : "pendiente";
+    }
+    case "Empate al descanso": {
+      const g1L = goles(true, 1), g1V = goles(false, 1);
+      const cerrado = fin || v.descanso || v.jugado >= 45;
+      return cerrado ? (g1L === g1V ? "si" : "no") : "pendiente";
+    }
   }
-  let m = mercado.match(/^(Local |Visita )?(Más|más|Menos|menos) de ([\d.]+) goles( en ([12])T)?$/);
+
+  let m = mercado.match(/^(Local|Visita) anota en ([12])T$/);
+  if (m) {
+    const lado = m[1] === "Local";
+    const t = Number(m[2]);
+    const g = goles(lado, t);
+    const cerrado = fin || (t === 1 && (v.descanso || v.jugado >= 45));
+    return g > 0 ? "si" : cerrado ? "no" : "pendiente";
+  }
+
+  m = mercado.match(/^(Local |Visita )?(Más|más|Menos|menos) de ([\d.]+) goles( en ([12])T)?$/);
   if (m) {
     const lado = m[1] ? m[1].trim() === "Local" : null;
     const t = m[5] ? Number(m[5]) : null;
     // con el marcador cuando se puede; por tiempo, con los goles registrados
     const valor = t ? goles(lado, t) : lado == null ? gl + gv : lado ? gl : gv;
-    const cerrado = fin || (t === 1 && (v.descanso || v.jugado > 45));
+    const cerrado = fin || (t === 1 && (v.descanso || v.jugado >= 45));
     return linea(valor, /más/i.test(m[2]), Number(m[3]), cerrado);
   }
   m = mercado.match(/^(Local |Visita )?(Más|más|Menos|menos) de ([\d.]+) (corners|tarjetas|tiros a puerta|tiros)$/);
@@ -45,3 +67,20 @@ export function evaluar(mercado, v) {
   if (m) return v.eventos.some((e) => e.tipo === "gol" && e.jugador === m[1]) ? "si" : fin ? "no" : "pendiente";
   return null; // tiros por jugador, descanso/final, etc.: ESPN no da el dato en vivo
 }
+
+export function evaluarParlay(parlay, vivo) {
+  if (!parlay?.piernas?.length || !vivo) return parlay;
+  const piernas = parlay.piernas.map((x) => ({
+    ...x,
+    estadoVivo: evaluar(x.mercado, vivo),
+  }));
+  const algunFallo = piernas.some((x) => x.estadoVivo === "no");
+  const todasCumplidas = piernas.every((x) => x.estadoVivo === "si");
+  const estadoGeneral = algunFallo ? "no" : todasCumplidas ? "si" : "pendiente";
+  return {
+    ...parlay,
+    piernas,
+    estadoGeneral,
+  };
+}
+

@@ -9,7 +9,6 @@ import Recomendaciones from "./components/Recomendaciones";
 import EnVivo from "./components/EnVivo";
 import Tablas from "./components/Tablas";
 import VivoPage from "./components/VivoPage";
-import Aciertos from "./components/Aciertos";
 import { nombreMercado } from "./mercados";
 import BoletoPanel from "./components/BoletoPanel";
 import { useBoleto } from "./hooks/useBoleto";
@@ -124,8 +123,6 @@ export default function App() {
 
       {vivoId ? (
         <VivoPage liga={parametro("liga")} evento={vivoId} ligas={ligas} boleto={boleto} onVolver={volver} />
-      ) : vista === "aciertos" ? (
-        <Aciertos onVolver={volver} />
       ) : vista === "tablas" ? (
         <Tablas ligas={ligas} ligaInicial={liga} onVolver={volver} />
       ) : partidoId ? (
