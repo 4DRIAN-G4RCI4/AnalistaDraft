@@ -44,6 +44,6 @@ Rama `feature/*` o `fix/*` → PR a `development` → PR `development→release`
 
 ## Pendientes / decisiones
 - **Supabase (registro de aciertos): QUITADO** el 2026-10-17 a pedido del usuario ("no sirve por ahora").
-- En curso: **parlay del partido** — cada partido genera 2 combinadas de sus mercados: **Seguro** (muy probable) y **Soñador** (paga más, con riesgo). Mostrarlas en el partido desglosado; durante el juego marcar pierna por pierna cómo se va cumpliendo y si el parlay sigue vivo.
+- **Parlay del partido**: Implementado — cada partido genera 2 combinadas de sus mercados: **Factible (5 selecciones)** (alta probabilidad, compatible, menor riesgo) y **Soñador** (paga bien, selecciones factibles >45% con algo de riesgo pero más factibles que riesgosas). Se muestran en la página de detalle del partido y en vivo con evaluación en tiempo real de cada pierna y estado general.
 - Idea futura del usuario: que el sitio no se pueda clonar (solo repo privado logra algo parecido).
 - Strix pentest: no corrió (falta LLM key propia + disco). Pentest manual hecho; único hallazgo (POST/DELETE en API) ya corregido en v1.14.1.

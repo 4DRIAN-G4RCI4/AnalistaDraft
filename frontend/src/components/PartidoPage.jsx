@@ -8,6 +8,8 @@ import AddButton from "./AddButton";
 import Historial from "./Historial";
 import Ganador from "./Ganador";
 import Alineaciones from "./Alineaciones";
+import ParlayPartidoCard from "./ParlayPartidoCard";
+import { armarParlaysPartido } from "../parlaysPartido";
 
 const PRINCIPALES = [
   "Local", "Empate", "Visita", "Local o empate", "Visita o empate", "Hay ganador (sin empate)",
@@ -193,6 +195,7 @@ export default function PartidoPage({ p, boleto, onVolver }) {
   const d = r.destacadas;
   const picks = new Set([d.valor?.mercado, ...(d.lista ?? []).map((x) => x.mercado)].filter(Boolean));
   const confirmadas = p.alineacion?.[p.local.id] && p.alineacion?.[p.visita.id];
+  const parlays = p.resumen?.parlays ?? armarParlaysPartido(p);
 
   useEffect(() => {
     document.title = `${p.titulo} — AnalistaDraft`;
@@ -246,6 +249,34 @@ export default function PartidoPage({ p, boleto, onVolver }) {
         <Ganador local={p.local.nombre} visita={p.visita.nombre} prob={{ local: p.probs.Local, empate: p.probs.Empate, visita: p.probs.Visita }} />
         <MejorApuesta p={p} boleto={boleto} completa />
       </section>
+
+      {parlays && (parlays.factible || parlays.sonador) && (
+        <section className="parlays-partido-container">
+          <div className="section-head-simple">
+            <h2 className="section-title">Parlays sugeridos del partido</h2>
+            <p className="muted parlays-nota">
+              Combinadas con mercados de este mismo partido (Crear Apuesta / Bet Builder). Selecciones compatibles que no se contradicen.
+            </p>
+          </div>
+          <div className="parlay-grid">
+            {parlays.factible && (
+              <ParlayPartidoCard
+                parlay={parlays.factible}
+                p={p}
+                boleto={boleto}
+                destacado
+              />
+            )}
+            {parlays.sonador && (
+              <ParlayPartidoCard
+                parlay={parlays.sonador}
+                p={p}
+                boleto={boleto}
+              />
+            )}
+          </div>
+        </section>
+      )}
 
       <div className="partido-grid">
         <div className="partido-lateral">

@@ -5,6 +5,8 @@ import { evaluar } from "../evaluar";
 import { VivoDetalle } from "./EnVivo";
 import Ganador from "./Ganador";
 import MejorApuesta from "./MejorApuesta";
+import ParlayPartidoCard from "./ParlayPartidoCard";
+import { armarParlaysPartido } from "../parlaysPartido";
 
 const CADA = 60e3;
 const PRINCIPALES = ["Local", "Empate", "Visita", "Local o empate", "Visita o empate", "Hay ganador (sin empate)", "Más de 1.5 goles", "Más de 2.5 goles", "Menos de 2.5 goles", "Menos de 3.5 goles", "Ambos anotan", "No ambos anotan"];
@@ -151,17 +153,38 @@ export default function VivoPage({ liga, evento, ligas, boleto, onVolver }) {
             <span className="state-title">Reconstruyendo el análisis de antes del inicio…</span>
           </div>
         ) : (
-          <>
-            <Cumplidas pre={pre} vivo={vivo} />
-            <section className="panel partido-hero">
-              <div className="panel-head">
-                <h2>Análisis prepartido</h2>
-                <span className="panel-sub">{pre.ajustadoACasas ? "con los momios de antes del inicio" : "solo estadística (la casa ya no publica los momios previos)"}</span>
-              </div>
-              <Ganador local={pre.local.nombre} visita={pre.visita.nombre} prob={{ local: pre.probs.Local, empate: pre.probs.Empate, visita: pre.probs.Visita }} />
-              <MejorApuesta p={pre} boleto={boleto} completa />
-            </section>
-          </>
+          (() => {
+            const parlays = pre.resumen?.parlays ?? armarParlaysPartido(pre);
+            return (
+              <>
+                <Cumplidas pre={pre} vivo={vivo} />
+                {parlays && (parlays.factible || parlays.sonador) && (
+                  <section className="parlays-partido-container">
+                    <div className="section-head-simple">
+                      <h2 className="section-title">Parlays del partido en vivo</h2>
+                      <p className="muted parlays-nota">Seguimiento en tiempo real de cómo van las selecciones del prepartido.</p>
+                    </div>
+                    <div className="parlay-grid">
+                      {parlays.factible && (
+                        <ParlayPartidoCard parlay={parlays.factible} p={pre} vivo={vivo} boleto={boleto} destacado />
+                      )}
+                      {parlays.sonador && (
+                        <ParlayPartidoCard parlay={parlays.sonador} p={pre} vivo={vivo} boleto={boleto} />
+                      )}
+                    </div>
+                  </section>
+                )}
+                <section className="panel partido-hero">
+                  <div className="panel-head">
+                    <h2>Análisis prepartido</h2>
+                    <span className="panel-sub">{pre.ajustadoACasas ? "con los momios de antes del inicio" : "solo estadística (la casa ya no publica los momios previos)"}</span>
+                  </div>
+                  <Ganador local={pre.local.nombre} visita={pre.visita.nombre} prob={{ local: pre.probs.Local, empate: pre.probs.Empate, visita: pre.probs.Visita }} />
+                  <MejorApuesta p={pre} boleto={boleto} completa />
+                </section>
+              </>
+            );
+          })()
         ))}
     </div>
   );
