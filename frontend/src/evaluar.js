@@ -68,11 +68,34 @@ export function evaluar(mercado, v) {
   return null; // tiros por jugador, descanso/final, etc.: ESPN no da el dato en vivo
 }
 
+// Para la barra de progreso: en los mercados con línea devuelve cuánto va y cuánto se necesita.
+// { valor, linea, mas } o null si el mercado no es de conteo (resultado, ambos anotan, etc.).
+export function progreso(mercado, v) {
+  const tarjetas = (local) => v.eventos.filter((e) => (e.tipo === "amarilla" || e.tipo === "roja") && (local == null || e.local === local)).length;
+  const goles = (local, t) => v.eventos.filter((e) => (e.tipo === "gol" || e.tipo === "autogol") && (local == null || e.local === local) && (t == null || tiempoDe(e.minuto) === t)).length;
+
+  let m = mercado.match(/^(Local |Visita )?(Más|más|Menos|menos) de ([\d.]+) goles( en ([12])T)?$/);
+  if (m) {
+    const lado = m[1] ? m[1].trim() === "Local" : null;
+    const t = m[5] ? Number(m[5]) : null;
+    const valor = t ? goles(lado, t) : lado == null ? v.local.goles + v.visita.goles : lado ? v.local.goles : v.visita.goles;
+    return { valor, linea: Number(m[3]), mas: /más/i.test(m[2]) };
+  }
+  m = mercado.match(/^(Local |Visita )?(Más|más|Menos|menos) de ([\d.]+) (corners|tarjetas|tiros a puerta|tiros)$/);
+  if (m) {
+    const lado = m[1] ? m[1].trim() === "Local" : null;
+    const valor = m[4] === "tarjetas" ? tarjetas(lado) : lado == null ? v.local[CONTEO[m[4]]] + v.visita[CONTEO[m[4]]] : (lado ? v.local : v.visita)[CONTEO[m[4]]];
+    return { valor, linea: Number(m[3]), mas: /más/i.test(m[2]) };
+  }
+  return null;
+}
+
 export function evaluarParlay(parlay, vivo) {
   if (!parlay?.piernas?.length || !vivo) return parlay;
   const piernas = parlay.piernas.map((x) => ({
     ...x,
     estadoVivo: evaluar(x.mercado, vivo),
+    progreso: progreso(x.mercado, vivo),
   }));
   const algunFallo = piernas.some((x) => x.estadoVivo === "no");
   // las piernas que ESPN no deja medir (tiros por jugador, descanso/final) no bloquean el veredicto

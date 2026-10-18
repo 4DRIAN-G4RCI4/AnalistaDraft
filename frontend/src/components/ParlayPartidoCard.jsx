@@ -1,4 +1,4 @@
-import { momio, pct } from "../format";
+import { linkSeguro, momio, pct } from "../format";
 import { pierna } from "../mercados";
 import { ETIQUETAS_CATEGORIA } from "../parlaysPartido";
 import { evaluarParlay } from "../evaluar";
@@ -10,6 +10,41 @@ const ESTADO_VIVO = {
   pendiente: ["⏳", "En juego", "res-pendiente"],
   nomedible: ["—", "Sin dato", "res-pendiente"],
 };
+
+// Escudo del equipo al que apunta la pierna; los dos si el mercado es del partido entero.
+function Escudos({ mercado, p }) {
+  const soloLocal = /^Local\b/.test(mercado);
+  const soloVisita = /^Visita\b/.test(mercado);
+  const equipos = soloLocal ? [p.local] : soloVisita ? [p.visita] : [p.local, p.visita];
+  const urls = equipos.filter((e) => linkSeguro(e?.logo));
+  if (!urls.length) return null;
+  return (
+    <span className={`leg-escudos ${urls.length > 1 ? "par" : ""}`} aria-hidden="true">
+      {urls.map((e) => (
+        <img key={e.id} src={e.logo} alt="" width="22" height="22" />
+      ))}
+    </span>
+  );
+}
+
+// Barra tipo casa de apuestas: cuánto va (número) contra la línea que necesita (marca en la pista).
+function Barra({ progreso: { valor, linea, mas }, estado }) {
+  const tope = Math.max(linea * 1.4, valor * 1.15, linea + 1);
+  const pos = (n) => `${Math.min(100, (n / tope) * 100)}%`;
+  const color = estado === "si" ? "ok" : estado === "no" ? "mal" : mas ? "falta" : "ok";
+  return (
+    <div className={`leg-barra ${color}`}>
+      <span className="leg-barra-valor">{valor}</span>
+      <div className="leg-barra-pista">
+        <span className="leg-barra-llena" style={{ width: pos(valor) }} />
+        <span className="leg-barra-meta" style={{ left: pos(linea) }} title={`Línea: ${linea}`} />
+      </div>
+      <span className="leg-barra-objetivo">
+        {mas ? "↑" : "↓"} {linea}
+      </span>
+    </div>
+  );
+}
 
 export default function ParlayPartidoCard({ parlay: rawParlay, p, boleto, vivo = null, destacado = false }) {
   if (!rawParlay) return null;
@@ -58,14 +93,16 @@ export default function ParlayPartidoCard({ parlay: rawParlay, p, boleto, vivo =
             <li key={x.categoria + x.mercado} className={ev ? `leg-evaluada ${ev[2]}` : ""}>
               <div className="leg-main">
                 <div className="leg-header-line">
+                  <Escudos mercado={x.mercado} p={p} />
                   <span className="leg-cat-pill">{ETIQUETAS_CATEGORIA[x.categoria] ?? x.categoria}</span>
                   {ev && (
-                    <span className={`leg-live-chip ${ev[2]}`} title={`Estado en vivo: ${ev[1]}`}>
+                    <span className={`leg-live-chip ${ev[2]}`} title={`Estado: ${ev[1]}`}>
                       {ev[0]} {ev[1]}
                     </span>
                   )}
                 </div>
                 <span className="leg-market">{x.nombre}</span>
+                {x.progreso && <Barra progreso={x.progreso} estado={x.estadoVivo} />}
               </div>
 
               <div className="leg-side">

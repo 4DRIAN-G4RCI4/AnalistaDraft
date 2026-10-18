@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { evaluar, evaluarParlay } from "./evaluar.js";
+import { evaluar, evaluarParlay, progreso } from "./evaluar.js";
 
 const v = (estado, gl, gv, extra = {}) => ({
   estado, jugado: 60, descanso: false,
@@ -75,3 +75,31 @@ test("evaluarParlay: sigue vivo, se cae o se cobra", () => {
   assert.equal(res3.estadoGeneral, "si");
 });
 
+
+test("progreso: valor actual y línea para la barra", () => {
+  const partido = v("in", 2, 1, {
+    eventos: [
+      { tipo: "amarilla", local: true, minuto: "20'" },
+      { tipo: "amarilla", local: false, minuto: "35'" },
+      { tipo: "gol", local: true, minuto: "10'" },
+    ],
+  });
+
+  // goles del partido: 2+1 = 3
+  assert.deepEqual(progreso("Más de 2.5 goles", partido), { valor: 3, linea: 2.5, mas: true });
+  // goles de un solo equipo
+  assert.deepEqual(progreso("Local más de 1.5 goles", partido), { valor: 2, linea: 1.5, mas: true });
+  // "menos de" marca mas:false para que la barra apunte hacia abajo
+  assert.deepEqual(progreso("Visita menos de 2.5 goles", partido), { valor: 1, linea: 2.5, mas: false });
+  // corners: 4 local + 5 visita
+  assert.deepEqual(progreso("Más de 8.5 corners", partido), { valor: 9, linea: 8.5, mas: true });
+  // tarjetas salen de los eventos, no del marcador
+  assert.deepEqual(progreso("Más de 1.5 tarjetas", partido), { valor: 2, linea: 1.5, mas: true });
+  // tiros a puerta de un equipo
+  assert.deepEqual(progreso("Local más de 2.5 tiros a puerta", partido), { valor: 3, linea: 2.5, mas: true });
+
+  // los mercados sin línea no llevan barra
+  assert.equal(progreso("Ambos anotan", partido), null);
+  assert.equal(progreso("Local", partido), null);
+  assert.equal(progreso("Local anota en 2T", partido), null);
+});
