@@ -116,6 +116,7 @@ async function analizarPartido(liga, p, { tbl, news, eventos, media }) {
     const equipo = (e, t, v) => ({ ...e, pos: t.pos ?? null, pj: t.pj, gf: t.gf, gc: t.gc, valor: v?.valor ?? null });
     const analizado = {
       id: p.id, liga, fecha: p.fecha, titulo: `${p.local.nombre} vs ${p.visita.nombre}`,
+      ...(p.estado && { estado: p.estado, marcadorFinal: p.marcadorFinal }),
       local: equipo(p.local, tl, vl), visita: equipo(p.visita, tv, vv),
       golesEsperados: goles, ajustadoACasas: Boolean(golesCasas), probs, modelo, marcador, mercado, casa,
       noticias: news.filter(n => n.equipos.includes(p.local.id) || n.equipos.includes(p.visita.id)).slice(0, 6),
