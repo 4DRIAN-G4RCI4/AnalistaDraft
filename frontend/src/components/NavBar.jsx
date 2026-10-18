@@ -29,6 +29,7 @@ export default function NavBar({ enBoleto = 0, base = "", onBoleto, onVista }) {
         <a href={`${base}#parlays`}>Parlays</a>
         {[
           ["tablas", "Tablas"],
+          ["pasadas", "Pasadas"],
           ["aciertos", "Aciertos"],
         ].map(([v, texto]) => (
           <a
