@@ -10,10 +10,7 @@ export default function PasadasHoy({ ligas, boleto, onAbrir, onVolver }) {
     const ctrl = new AbortController();
     setCargando(true);
     pedir("/api/analisis?liga=hoy&dias=1", ctrl.signal, () => {})
-      .then((j) => {
-        const posts = (j.partidos ?? []).filter((p) => p.estado === "post");
-        setPartidos(posts);
-      })
+      .then((j) => setPartidos(j.pasadas ?? []))
       .catch(() => {})
       .finally(() => setCargando(false));
     return () => ctrl.abort();

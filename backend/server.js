@@ -183,14 +183,16 @@ async function analizarHoy() {
   const ligas = await Promise.allSettled(Object.keys(LIGAS).map(l => analisisObj(l, 2)));
   const ok = ligas.filter(r => r.status === 'fulfilled').map(r => r.value);
   if (!ok.length) throw new Error('Ninguna liga respondió');
-  const partidos = ok.flatMap(a => a.partidos)
-    .filter(p => diaCDMX(p.fecha) === hoy)
-    .sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+  const todos = ok.flatMap(a => a.partidos).filter(p => diaCDMX(p.fecha) === hoy);
+  // "Hoy" muestra solo los que faltan o están en vivo; los ya terminados van a "Pasadas"
+  const partidos = todos.filter(p => p.estado !== 'post').sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+  const pasadas = todos.filter(p => p.estado === 'post').sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
   return {
     liga: 'Hoy, todas las ligas',
     media: ok.reduce((s, a) => s + a.media, 0) / ok.length,
     actualizado: new Date().toISOString(),
     partidos,
+    pasadas,
     parlays: armarParlays(partidos),
   };
 }
