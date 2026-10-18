@@ -142,9 +142,14 @@ export const partidos = (liga, dias) => memo(`partidos:${liga}:${dias}`, TTL.par
   const fechas = Array.from({ length: dias + 1 }, (_, i) => new Date(Date.now() + (i - 1) * 864e5).toISOString().slice(0, 10).replaceAll('-', ''));
   const dias_ = await Promise.all(fechas.map(f => json(`${ESPN}/site/v2/sports/soccer/${liga}/scoreboard?dates=${f}`, TTL.partidos)));
   const vistos = new Set();
-  return dias_.flatMap(d => d.events)
-    .filter(ev => ev.status.type.state === 'pre' && !vistos.has(ev.id) && vistos.add(ev.id))
-    .map(partidoDe);
+  const eventos = dias_.flatMap(d => d.events).filter(ev => !vistos.has(ev.id) && vistos.add(ev.id));
+  const pre = eventos.filter(ev => ev.status.type.state === 'pre').map(partidoDe);
+  // cuando es "Hoy" (dias=1), también devolver los ya finalizados con su marcador para la sección de resultados
+  if (dias === 1) {
+    const post = eventos.filter(ev => ev.status.type.state === 'post').map(ev => ({ ...partidoDe(ev), estado: 'post', marcadorFinal: vivoDe(ev, liga) }));
+    return [...pre, ...post];
+  }
+  return pre;
 });
 
 // Evento del scoreboard -> partido para analizar (equipos, fecha y momios de la casa)

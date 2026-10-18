@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { fecha, linkSeguro, momio, pct } from "../format";
 import { CATEGORIA, nombreMercado, pierna } from "../mercados";
 import { Enfrentamiento, FORMA } from "./Equipo";
@@ -188,14 +188,27 @@ function Noticias({ noticias }) {
 }
 
 // Página de un partido con todos sus datos.
-export default function PartidoPage({ p, boleto, onVolver }) {
+export default function PartidoPage({ p, boleto, onVolver, vivoInicial = null }) {
   const [tab, setTab] = useState("principales");
   const [verTodos, setVerTodos] = useState(false); // por defecto solo las más probables
+  const [vivo, setVivo] = useState(vivoInicial); // marcador final si el partido ya terminó
   const r = p.resumen;
   const d = r.destacadas;
   const picks = new Set([d.valor?.mercado, ...(d.lista ?? []).map((x) => x.mercado)].filter(Boolean));
   const confirmadas = p.alineacion?.[p.local.id] && p.alineacion?.[p.visita.id];
   const parlays = p.resumen?.parlays ?? armarParlaysPartido(p);
+
+  // Si el partido ya debería haber comenzado, pedir el estado real una vez
+  useEffect(() => {
+    if (!p.liga || !p.id) return;
+    if (vivo?.estado === "post") return; // ya tenemos el final
+    const ahora = Date.now();
+    if (p.fecha && new Date(p.fecha).getTime() > ahora + 30 * 60e3) return; // más de 30 min en el futuro
+    fetch(`/api/partido?liga=${encodeURIComponent(p.liga)}&evento=${encodeURIComponent(p.id)}`)
+      .then((r) => r.json())
+      .then((j) => { if (j?.vivo) setVivo(j.vivo); })
+      .catch(() => {});
+  }, [p.liga, p.id, p.fecha]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     document.title = `${p.titulo} — AnalistaDraft`;
@@ -264,6 +277,7 @@ export default function PartidoPage({ p, boleto, onVolver }) {
                 parlay={parlays.factible}
                 p={p}
                 boleto={boleto}
+                vivo={vivo}
                 destacado
               />
             )}
@@ -272,6 +286,7 @@ export default function PartidoPage({ p, boleto, onVolver }) {
                 parlay={parlays.sonador}
                 p={p}
                 boleto={boleto}
+                vivo={vivo}
               />
             )}
           </div>
