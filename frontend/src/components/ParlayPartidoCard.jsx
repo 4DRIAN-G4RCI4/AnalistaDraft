@@ -8,6 +8,7 @@ const ESTADO_VIVO = {
   si: ["✓", "Cumplida", "res-si"],
   no: ["✗", "Fallida", "res-no"],
   pendiente: ["⏳", "En juego", "res-pendiente"],
+  nomedible: ["—", "Sin dato", "res-pendiente"],
 };
 
 export default function ParlayPartidoCard({ parlay: rawParlay, p, boleto, vivo = null, destacado = false }) {
@@ -36,7 +37,7 @@ export default function ParlayPartidoCard({ parlay: rawParlay, p, boleto, vivo =
           <span className="panel-sub">
             {vivo ? (
               <span className={`parlay-live-badge ${estadoGeneral === "si" ? "cobrado" : estadoGeneral === "no" ? "caido" : "vivo"}`}>
-                {estadoGeneral === "si" ? "🏆 ¡Cobrado!" : estadoGeneral === "no" ? "✗ Se cayó" : "🟢 Sigue vivo"}
+                {estadoGeneral === "si" ? "🏆 ¡Cobrado!" : estadoGeneral === "no" ? "✗ Se cayó" : vivo.estado === "post" ? "Sin datos para cerrarlo" : "🟢 Sigue vivo"}
               </span>
             ) : parlay.tipo === "factible" ? (
               "5 selecciones · Menor riesgo"
@@ -52,7 +53,7 @@ export default function ParlayPartidoCard({ parlay: rawParlay, p, boleto, vivo =
       <ol className="parlay-legs">
         {parlay.piernas.map((x) => {
           const sel = pierna(p, x.mercado, x.prob, x.cuota);
-          const ev = x.estadoVivo ? ESTADO_VIVO[x.estadoVivo] : null;
+          const ev = x.estadoVivo ? ESTADO_VIVO[x.estadoVivo] : vivo ? ESTADO_VIVO.nomedible : null;
           return (
             <li key={x.categoria + x.mercado} className={ev ? `leg-evaluada ${ev[2]}` : ""}>
               <div className="leg-main">

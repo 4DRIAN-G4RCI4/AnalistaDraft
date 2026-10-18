@@ -2861,6 +2861,14 @@ body {
 }
 .finalizados-hoy { margin-top: var(--sp-6); }
 .finalizados-titulo { margin-bottom: var(--sp-2); }
+.resultado-resumen {
+  margin: var(--sp-3) 0 0;
+  padding: var(--sp-3);
+  border-radius: var(--radius-md, 10px);
+  background: var(--panel-2, rgba(255, 255, 255, .04));
+  color: var(--text);
+  line-height: 1.55;
+}
 
 /* al abrir, visible al instante (si no, el foco no puede entrar durante la transición) */
 .boleto-drawer.open {
