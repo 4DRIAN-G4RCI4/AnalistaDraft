@@ -20,12 +20,16 @@ export default function MatchCard({ p, boleto, onAbrir, ligaNombre, finalizado =
           <span className="match-resultado-label">Resultado final</span>
         </div>
       )}
-      <Ganador local={p.local.nombre} visita={p.visita.nombre} prob={{ local: p.probs.Local, empate: p.probs.Empate, visita: p.probs.Visita }} />
-      <MejorApuesta p={p} boleto={boleto} />
+      {!finalizado && (
+        <>
+          <Ganador local={p.local.nombre} visita={p.visita.nombre} prob={{ local: p.probs.Local, empate: p.probs.Empate, visita: p.probs.Visita }} />
+          <MejorApuesta p={p} boleto={boleto} />
+        </>
+      )}
       <button type="button" className="btn ver-mas" onClick={() => onAbrir(p)}>
         {finalizado ? "Ver si se cumplieron los parlays →" : "Ver más: todos los datos del partido →"}
       </button>
-      {alertas > 0 && <span className="ver-mas-nota alert-text">{alertas} alerta(s) en el análisis</span>}
+      {!finalizado && alertas > 0 && <span className="ver-mas-nota alert-text">{alertas} alerta(s) en el análisis</span>}
     </article>
   );
 }

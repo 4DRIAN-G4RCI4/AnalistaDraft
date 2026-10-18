@@ -75,7 +75,9 @@ export function evaluarParlay(parlay, vivo) {
     estadoVivo: evaluar(x.mercado, vivo),
   }));
   const algunFallo = piernas.some((x) => x.estadoVivo === "no");
-  const todasCumplidas = piernas.every((x) => x.estadoVivo === "si");
+  // las piernas que ESPN no deja medir (tiros por jugador, descanso/final) no bloquean el veredicto
+  const medibles = piernas.filter((x) => x.estadoVivo);
+  const todasCumplidas = medibles.length > 0 && medibles.every((x) => x.estadoVivo === "si");
   const estadoGeneral = algunFallo ? "no" : todasCumplidas ? "si" : "pendiente";
   return {
     ...parlay,
