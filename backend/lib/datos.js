@@ -144,8 +144,8 @@ export const partidos = (liga, dias) => memo(`partidos:${liga}:${dias}`, TTL.par
   const vistos = new Set();
   const eventos = dias_.flatMap(d => d.events).filter(ev => !vistos.has(ev.id) && vistos.add(ev.id));
   const pre = eventos.filter(ev => ev.status.type.state === 'pre').map(partidoDe);
-  // cuando es "Hoy" (dias=1), también devolver los ya finalizados con su marcador para la sección de resultados
-  if (dias === 1) {
+  // cuando es la vista "Hoy" (dias<=2), también devolver los ya finalizados con su marcador
+  if (dias <= 2) {
     const post = eventos.filter(ev => ev.status.type.state === 'post').map(ev => ({ ...partidoDe(ev), estado: 'post', marcadorFinal: vivoDe(ev, liga) }));
     return [...pre, ...post];
   }
