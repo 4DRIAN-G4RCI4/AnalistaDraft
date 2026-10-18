@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { pedir } from "../hooks/useAnalisis";
 import MatchCard from "./MatchCard";
 
-export default function PasadasHoy({ ligas, boleto, onAbrir, onVolver }) {
+export default function PasadasHoy({ ligas, onAbrir, onVolver }) {
   const [partidos, setPartidos] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [despertando, setDespertando] = useState(false);
@@ -40,14 +40,7 @@ export default function PasadasHoy({ ligas, boleto, onAbrir, onVolver }) {
       ) : (
         <div className="match-grid">
           {partidos.map((p) => (
-            <MatchCard
-              key={p.id}
-              p={p}
-              boleto={boleto}
-              onAbrir={onAbrir}
-              ligaNombre={ligas[p.liga]?.nombre ?? null}
-              finalizado
-            />
+            <MatchCard key={p.id} p={p} boleto={null} onAbrir={onAbrir} ligaNombre={ligas[p.liga]?.nombre ?? null} finalizado />
           ))}
         </div>
       )}

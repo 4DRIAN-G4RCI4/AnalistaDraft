@@ -10,6 +10,7 @@ import EnVivo from "./components/EnVivo";
 import Tablas from "./components/Tablas";
 import VivoPage from "./components/VivoPage";
 import PasadasHoy from "./components/PasadasHoy";
+import ResultadoPage from "./components/ResultadoPage";
 import { nombreMercado } from "./mercados";
 import BoletoPanel from "./components/BoletoPanel";
 import { useBoleto } from "./hooks/useBoleto";
@@ -19,23 +20,6 @@ const DIAS = [3, 7, 14];
 const HOY = "hoy"; // todos los partidos de hoy de todas las ligas
 const VIVO = "vivo"; // solo los partidos en juego, de todas las ligas
 
-// Partidos finalizados hoy: se guardan en localStorage con TTL de 24 h.
-const CLAVE_FIN = "analista-finalizados-hoy";
-const TTL_FIN = 24 * 60 * 60e3;
-
-function leerFinalizados() {
-  try {
-    const raw = JSON.parse(localStorage.getItem(CLAVE_FIN));
-    if (!raw || Date.now() - raw.t > TTL_FIN) return [];
-    return raw.partidos ?? [];
-  } catch { return []; }
-}
-
-function guardarFinalizados(partidos) {
-  try {
-    localStorage.setItem(CLAVE_FIN, JSON.stringify({ t: Date.now(), partidos }));
-  } catch { /* sin espacio: no es crítico */ }
-}
 
 const parametro = (k) => new URLSearchParams(window.location.search).get(k);
 
@@ -56,49 +40,35 @@ export default function App() {
   const { data, loading, error, despertando, actualizando, refrescar } = useAnalisis(liga === VIVO ? HOY : liga, dias);
   const boleto = useBoleto();
   const [boletoAbierto, setBoletoAbierto] = useState(false);
-  const [finalizados, setFinalizados] = useState(leerFinalizados);
-  const [partidoExtra, setPartidoExtra] = useState(null); // partido cargado desde Pasadas
 
   // Página de un partido: ?liga=…&partido=… (sirve el botón Atrás y los enlaces directos)
   const [partidoId, setPartidoId] = useState(() => parametro("partido"));
   const [vista, setVista] = useState(() => parametro("vista")); // ?vista=tablas | aciertos
   const [vivoId, setVivoId] = useState(() => parametro("vivo")); // ?liga=…&vivo=… página de un partido en juego
+  const [resultadoId, setResultadoId] = useState(() => parametro("resultado")); // ?liga=…&resultado=… partido terminado
   const scrollLista = useRef(0);
   useEffect(() => {
     const alNavegar = () => {
       setPartidoId(parametro("partido"));
       setVista(parametro("vista"));
       setVivoId(parametro("vivo"));
+      setResultadoId(parametro("resultado"));
     };
     window.addEventListener("popstate", alNavegar);
     return () => window.removeEventListener("popstate", alNavegar);
   }, []);
-  const partido = partidoId && (data?.partidos.find((x) => x.id === partidoId) ?? finalizados.find((x) => x.id === partidoId) ?? (partidoExtra?.id === partidoId ? partidoExtra : null));
+  const partido = partidoId && data?.partidos.find((x) => x.id === partidoId);
   useEffect(() => {
     if (partidoId && data && !partido && dias < 14) setDias(14); // enlace a un partido más lejano
   }, [partidoId, data, partido, dias]);
   useEffect(() => {
-    window.scrollTo(0, partidoId || vista || vivoId ? 0 : scrollLista.current);
-  }, [partidoId, vista, vivoId]);
-
-  // Cuando llegan datos de Hoy, guardar los partidos finalizados (estado "post") en caché 24 h
-  useEffect(() => {
-    if (!data?.partidos || liga !== HOY) return;
-    const posts = data.partidos.filter((p) => p.estado === "post");
-    if (!posts.length) return;
-    // Merge: no pisar finalizados de ligas que no llegaron en este batch
-    const mapaActual = Object.fromEntries(finalizados.map((p) => [p.id, p]));
-    for (const p of posts) mapaActual[p.id] = p;
-    const merged = Object.values(mapaActual);
-    guardarFinalizados(merged);
-    setFinalizados(merged);
-  }, [data]); // eslint-disable-line react-hooks/exhaustive-deps
+    window.scrollTo(0, partidoId || vista || vivoId || resultadoId ? 0 : scrollLista.current);
+  }, [partidoId, vista, vivoId, resultadoId]);
 
   function abrirPartido(p) {
     scrollLista.current = window.scrollY;
     // la liga real del partido (no "hoy"): así el enlace sigue sirviendo otro día
     window.history.pushState(null, "", `?liga=${encodeURIComponent(p.liga ?? liga)}&partido=${encodeURIComponent(p.id)}`);
-    setPartidoExtra(p); // guarda el objeto completo para cuando venga de Pasadas
     setPartidoId(p.id);
   }
   function volver() {
@@ -106,17 +76,25 @@ export default function App() {
     setPartidoId(null);
     setVista(null);
     setVivoId(null);
+    setResultadoId(null);
   }
   function abrirVivo(p) {
     scrollLista.current = window.scrollY;
     window.history.pushState(null, "", `?liga=${encodeURIComponent(p.liga)}&vivo=${encodeURIComponent(p.id)}`);
     setVivoId(p.id);
   }
+  // Desde "Pasadas": el partido ya terminó, se abre su página de resultado
+  function abrirResultado(p) {
+    scrollLista.current = window.scrollY;
+    window.history.pushState(null, "", `?liga=${encodeURIComponent(p.liga)}&resultado=${encodeURIComponent(p.id)}`);
+    setResultadoId(p.id);
+  }
   function abrirVista(v) {
-    if (!partidoId && !vista && !vivoId) scrollLista.current = window.scrollY;
+    if (!partidoId && !vista && !vivoId && !resultadoId) scrollLista.current = window.scrollY;
     window.history.pushState(null, "", `?vista=${v}`);
     setPartidoId(null);
     setVivoId(null);
+    setResultadoId(null);
     setVista(v);
   }
 
@@ -154,17 +132,19 @@ export default function App() {
 
   return (
     <div className="app">
-      <NavBar enBoleto={boleto.piernas.length} base={partidoId || vista || vivoId ? "/" : ""} onBoleto={() => setBoletoAbierto(true)} onVista={abrirVista} />
+      <NavBar enBoleto={boleto.piernas.length} base={partidoId || vista || vivoId || resultadoId ? "/" : ""} onBoleto={() => setBoletoAbierto(true)} onVista={abrirVista} />
 
-      {vivoId ? (
+      {resultadoId ? (
+        <ResultadoPage liga={parametro("liga")} evento={resultadoId} ligas={ligas} onVolver={volver} />
+      ) : vivoId ? (
         <VivoPage liga={parametro("liga")} evento={vivoId} ligas={ligas} boleto={boleto} onVolver={volver} />
       ) : vista === "pasadas" ? (
-        <PasadasHoy ligas={ligas} boleto={boleto} onAbrir={abrirPartido} onVolver={volver} />
+        <PasadasHoy ligas={ligas} onAbrir={abrirResultado} onVolver={volver} />
       ) : vista === "tablas" ? (
         <Tablas ligas={ligas} ligaInicial={liga} onVolver={volver} />
       ) : partidoId ? (
         partido ? (
-          <PartidoPage p={partido} boleto={boleto} onVolver={volver} vivoInicial={partido.marcadorFinal ?? null} />
+          <PartidoPage p={partido} boleto={boleto} onVolver={volver} />
         ) : error || (data && !loading && dias >= 14) ? (
           <div className="panel state state-error" role="alert">
             <span className="state-title">No se encontró el partido</span>
