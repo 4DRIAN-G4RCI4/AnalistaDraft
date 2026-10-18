@@ -57,6 +57,7 @@ export default function App() {
   const boleto = useBoleto();
   const [boletoAbierto, setBoletoAbierto] = useState(false);
   const [finalizados, setFinalizados] = useState(leerFinalizados);
+  const [partidoExtra, setPartidoExtra] = useState(null); // partido cargado desde Pasadas
 
   // Página de un partido: ?liga=…&partido=… (sirve el botón Atrás y los enlaces directos)
   const [partidoId, setPartidoId] = useState(() => parametro("partido"));
@@ -72,7 +73,7 @@ export default function App() {
     window.addEventListener("popstate", alNavegar);
     return () => window.removeEventListener("popstate", alNavegar);
   }, []);
-  const partido = partidoId && (data?.partidos.find((x) => x.id === partidoId) ?? finalizados.find((x) => x.id === partidoId));
+  const partido = partidoId && (data?.partidos.find((x) => x.id === partidoId) ?? finalizados.find((x) => x.id === partidoId) ?? (partidoExtra?.id === partidoId ? partidoExtra : null));
   useEffect(() => {
     if (partidoId && data && !partido && dias < 14) setDias(14); // enlace a un partido más lejano
   }, [partidoId, data, partido, dias]);
@@ -97,6 +98,7 @@ export default function App() {
     scrollLista.current = window.scrollY;
     // la liga real del partido (no "hoy"): así el enlace sigue sirviendo otro día
     window.history.pushState(null, "", `?liga=${encodeURIComponent(p.liga ?? liga)}&partido=${encodeURIComponent(p.id)}`);
+    setPartidoExtra(p); // guarda el objeto completo para cuando venga de Pasadas
     setPartidoId(p.id);
   }
   function volver() {
@@ -157,7 +159,7 @@ export default function App() {
       {vivoId ? (
         <VivoPage liga={parametro("liga")} evento={vivoId} ligas={ligas} boleto={boleto} onVolver={volver} />
       ) : vista === "pasadas" ? (
-        <PasadasHoy finalizados={finalizados} ligas={ligas} boleto={boleto} onAbrir={abrirPartido} onVolver={volver} />
+        <PasadasHoy ligas={ligas} boleto={boleto} onAbrir={abrirPartido} onVolver={volver} />
       ) : vista === "tablas" ? (
         <Tablas ligas={ligas} ligaInicial={liga} onVolver={volver} />
       ) : partidoId ? (
