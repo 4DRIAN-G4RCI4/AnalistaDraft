@@ -9,6 +9,7 @@ import Recomendaciones from "./components/Recomendaciones";
 import EnVivo from "./components/EnVivo";
 import Tablas from "./components/Tablas";
 import VivoPage from "./components/VivoPage";
+import PasadasHoy from "./components/PasadasHoy";
 import { nombreMercado } from "./mercados";
 import BoletoPanel from "./components/BoletoPanel";
 import { useBoleto } from "./hooks/useBoleto";
@@ -155,6 +156,8 @@ export default function App() {
 
       {vivoId ? (
         <VivoPage liga={parametro("liga")} evento={vivoId} ligas={ligas} boleto={boleto} onVolver={volver} />
+      ) : vista === "pasadas" ? (
+        <PasadasHoy finalizados={finalizados} ligas={ligas} boleto={boleto} onAbrir={abrirPartido} onVolver={volver} />
       ) : vista === "tablas" ? (
         <Tablas ligas={ligas} ligaInicial={liga} onVolver={volver} />
       ) : partidoId ? (
@@ -244,18 +247,6 @@ export default function App() {
                     <div className="panel state">
                       <span className="state-title">{liga === HOY ? "Hoy no hay partidos en estas ligas" : "No hay partidos programados"}</span>
                       <span className="state-desc">{liga === HOY ? "Elige una liga para ver sus próximos partidos." : "Prueba con un rango de días mayor."}</span>
-                    </div>
-                  )}
-                  {/* Finalizados hoy: partidos ya terminados del día, con sus parlays para revisar */}
-                  {liga === HOY && finalizados.length > 0 && (
-                    <div className="finalizados-hoy">
-                      <h3 className="section-title finalizados-titulo">Finalizados hoy</h3>
-                      <p className="muted parlays-nota">Partidos del día ya terminados. Ábrelos para ver si los parlays se cumplieron.</p>
-                      <div className="match-grid">
-                        {finalizados.map((p) => (
-                          <MatchCard key={p.id} p={p} boleto={boleto} onAbrir={abrirPartido} ligaNombre={ligas[p.liga]?.nombre ?? null} finalizado />
-                        ))}
-                      </div>
                     </div>
                   )}
                 </section>
