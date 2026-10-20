@@ -10,6 +10,7 @@ import Ganador from "./Ganador";
 import Alineaciones from "./Alineaciones";
 import ParlayPartidoCard from "./ParlayPartidoCard";
 import { armarParlaysPartido } from "../parlaysPartido";
+import Icono from "./Icono";
 
 const PRINCIPALES = [
   "Local", "Empate", "Visita", "Local o empate", "Visita o empate", "Hay ganador (sin empate)",
@@ -173,7 +174,7 @@ function Noticias({ noticias }) {
           <div className="news-item-text">
             {linkSeguro(n.url) ? (
               <a className="news-item-title" href={n.url} target="_blank" rel="noopener noreferrer">
-                {n.alerta && <span className="alert-text">⚠ </span>}
+                {n.alerta && <span className="alert-text"><Icono nombre="alerta" size={13} /> </span>}
                 {n.titulo}
               </a>
             ) : (
@@ -242,7 +243,7 @@ export default function PartidoPage({ p, boleto, onVolver, vivoInicial = null })
   return (
     <div className="partido-page">
       <button type="button" className="btn btn-secondary volver" onClick={onVolver}>
-        ← Volver a los partidos
+        <Icono nombre="flechaIzq" size={15} /> Volver a los partidos
       </button>
 
       <section className="panel partido-hero">

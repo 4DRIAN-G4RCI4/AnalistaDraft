@@ -1,4 +1,5 @@
 import { Component } from "react";
+import Icono from "./Icono";
 
 export default class ErrorBoundary extends Component {
   constructor(props) {
@@ -18,8 +19,8 @@ export default class ErrorBoundary extends Component {
     if (this.state.hasError) {
       return (
         <div className="state state-error panel" role="alert">
-          <span className="state-icon" aria-hidden="true">
-            ⚠
+          <span className="state-icon">
+            <Icono nombre="alerta" size={20} />
           </span>
           <span className="state-title">Algo salió mal</span>
           <span className="state-desc">

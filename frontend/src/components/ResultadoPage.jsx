@@ -5,9 +5,10 @@ import { evaluar } from "../evaluar";
 import { VivoDetalle } from "./EnVivo";
 import ParlayPartidoCard from "./ParlayPartidoCard";
 import { armarParlaysPartido } from "../parlaysPartido";
+import Icono from "./Icono";
 
 const PRINCIPALES = ["Local", "Empate", "Visita", "Local o empate", "Visita o empate", "Hay ganador (sin empate)", "Más de 1.5 goles", "Más de 2.5 goles", "Menos de 2.5 goles", "Menos de 3.5 goles", "Ambos anotan", "No ambos anotan"];
-const ESTADO = { si: ["✓", "Se cumplió"], no: ["✗", "No se cumplió"] };
+const ESTADO = { si: ["check", "Se cumplió"], no: ["cruz", "No se cumplió"] };
 
 // Las predicciones del prepartido que se pueden revisar con el resultado final.
 function predicciones(pre) {
@@ -70,7 +71,7 @@ function Cumplidas({ pre, vivo }) {
       <ul className="cumplidas-lista">
         {filas.map((x) => (
           <li key={x.mercado} className={`res-${x.r}`}>
-            <span className="res-icono" aria-hidden="true">{ESTADO[x.r][0]}</span>
+            <span className="res-icono"><Icono nombre={ESTADO[x.r][0]} size={16} /></span>
             <span className="res-mercado">{nombreMercado(x.mercado, pre)}</span>
             <span className="res-prob">{pct(x.prob)} · justa {momio(1 / x.prob)}</span>
             <span className="res-estado">{ESTADO[x.r][1]}</span>
@@ -108,7 +109,7 @@ export default function ResultadoPage({ liga, evento, ligas, onVolver }) {
       <div className="panel state state-error" role="alert">
         <span className="state-title">No se pudo cargar el partido</span>
         <span className="state-desc">{error}</span>
-        <button type="button" className="btn btn-secondary" onClick={onVolver}>← Volver</button>
+        <button type="button" className="btn btn-secondary" onClick={onVolver}><Icono nombre="flechaIzq" size={15} /> Volver</button>
       </div>
     );
   }
@@ -131,7 +132,7 @@ export default function ResultadoPage({ liga, evento, ligas, onVolver }) {
 
   return (
     <div className="partido-page">
-      <button type="button" className="btn btn-secondary volver" onClick={onVolver}>← Volver a Pasadas</button>
+      <button type="button" className="btn btn-secondary volver" onClick={onVolver}><Icono nombre="flechaIzq" size={15} /> Volver a Pasadas</button>
 
       <section className="panel vivo-hero terminado">
         <span className="match-liga">{ligas[liga]?.nombre}</span>

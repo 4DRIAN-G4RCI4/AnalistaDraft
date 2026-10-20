@@ -3,12 +3,13 @@ import { pierna } from "../mercados";
 import { ETIQUETAS_CATEGORIA } from "../parlaysPartido";
 import { evaluarParlay } from "../evaluar";
 import AddButton from "./AddButton";
+import Icono from "./Icono";
 
 const ESTADO_VIVO = {
-  si: ["✓", "Cumplida", "res-si"],
-  no: ["✗", "Fallida", "res-no"],
-  pendiente: ["⏳", "En juego", "res-pendiente"],
-  nomedible: ["—", "Sin dato", "res-pendiente"],
+  si: ["check", "Cumplida", "res-si"],
+  no: ["cruz", "Fallida", "res-no"],
+  pendiente: ["reloj", "En juego", "res-pendiente"],
+  nomedible: ["guion", "Sin dato", "res-pendiente"],
 };
 
 // Escudo del equipo al que apunta la pierna; los dos si el mercado es del partido entero.
@@ -40,7 +41,7 @@ function Barra({ progreso: { valor, linea, mas }, estado }) {
         <span className="leg-barra-meta" style={{ left: pos(linea) }} title={`Línea: ${linea}`} />
       </div>
       <span className="leg-barra-objetivo">
-        {mas ? "↑" : "↓"} {linea}
+        <Icono nombre={mas ? "flechaArriba" : "flechaAbajo"} size={12} /> {linea}
       </span>
     </div>
   );
@@ -72,7 +73,15 @@ export default function ParlayPartidoCard({ parlay: rawParlay, p, boleto, vivo =
           <span className="panel-sub">
             {vivo ? (
               <span className={`parlay-live-badge ${estadoGeneral === "si" ? "cobrado" : estadoGeneral === "no" ? "caido" : "vivo"}`}>
-                {estadoGeneral === "si" ? "🏆 ¡Cobrado!" : estadoGeneral === "no" ? "✗ Se cayó" : vivo.estado === "post" ? "Sin datos para cerrarlo" : "🟢 Sigue vivo"}
+                {estadoGeneral === "si" ? (
+                  <><Icono nombre="trofeo" size={14} /> ¡Cobrado!</>
+                ) : estadoGeneral === "no" ? (
+                  <><Icono nombre="cruz" size={14} /> Se cayó</>
+                ) : vivo.estado === "post" ? (
+                  "Sin datos para cerrarlo"
+                ) : (
+                  <><span className="vivo-punto" aria-hidden="true" /> Sigue vivo</>
+                )}
               </span>
             ) : parlay.tipo === "factible" ? (
               "5 selecciones · Menor riesgo"
@@ -97,7 +106,7 @@ export default function ParlayPartidoCard({ parlay: rawParlay, p, boleto, vivo =
                   <span className="leg-cat-pill">{ETIQUETAS_CATEGORIA[x.categoria] ?? x.categoria}</span>
                   {ev && (
                     <span className={`leg-live-chip ${ev[2]}`} title={`Estado: ${ev[1]}`}>
-                      {ev[0]} {ev[1]}
+                      <Icono nombre={ev[0]} size={13} /> {ev[1]}
                     </span>
                   )}
                 </div>
@@ -144,7 +153,11 @@ export default function ParlayPartidoCard({ parlay: rawParlay, p, boleto, vivo =
           className={`btn ${todasEnBoleto ? "btn-secondary" : "btn-primary"} parlay-add-all-btn`}
           onClick={alternarTodoElParlay}
         >
-          {todasEnBoleto ? "✓ Todo el parlay en el boleto (quitar)" : `+ Añadir las ${parlay.piernas.length} al boleto`}
+          {todasEnBoleto ? (
+            <><Icono nombre="check" size={15} /> Todo el parlay en el boleto (quitar)</>
+          ) : (
+            <><Icono nombre="mas" size={15} /> Añadir las {parlay.piernas.length} al boleto</>
+          )}
         </button>
       )}
     </section>
