@@ -23,10 +23,12 @@ export default function NavBar({ enBoleto = 0, base = "", onBoleto, onVista }) {
         <span className="navbar-title">AnalistaDraft</span>
       </div>
 
+      {/* nav-ancla: saltos dentro de la página, se ocultan en la barra inferior de móvil
+          para dejar solo las secciones reales (tab-bars.md: pocas pestañas, sin overflow) */}
       <div className="navbar-links">
-        <a href={`${base}#partidos`}>Partidos</a>
-        <a href={`${base}#recomendado`}>Recomendado</a>
-        <a href={`${base}#parlays`}>Parlays</a>
+        <a className="nav-ancla" href={`${base}#partidos`}>Partidos</a>
+        <a className="nav-ancla" href={`${base}#recomendado`}>Recomendado</a>
+        <a className="nav-ancla" href={`${base}#parlays`}>Parlays</a>
         {[
           ["tablas", "Tablas"],
           ["pasadas", "Pasadas"],
