@@ -7,10 +7,11 @@ import Ganador from "./Ganador";
 import MejorApuesta from "./MejorApuesta";
 import ParlayPartidoCard from "./ParlayPartidoCard";
 import { armarParlaysPartido } from "../parlaysPartido";
+import Icono from "./Icono";
 
 const CADA = 60e3;
 const PRINCIPALES = ["Local", "Empate", "Visita", "Local o empate", "Visita o empate", "Hay ganador (sin empate)", "Más de 1.5 goles", "Más de 2.5 goles", "Menos de 2.5 goles", "Menos de 3.5 goles", "Ambos anotan", "No ambos anotan"];
-const ESTADO = { si: ["✓", "Cumplida"], no: ["✗", "Fallida"], pendiente: ["⏳", "En juego"] };
+const ESTADO = { si: ["check", "Cumplida"], no: ["cruz", "Fallida"], pendiente: ["reloj", "En juego"] };
 
 // Predicciones del prepartido a revisar: lo recomendado y los mercados principales que tenían 60% o más.
 function predicciones(pre) {
@@ -30,15 +31,13 @@ function Cumplidas({ pre, vivo }) {
       <div className="panel-head">
         <h2>¿Se cumplió el prepartido?</h2>
         <span className="panel-sub">
-          ✓ {cuenta("si")} · ✗ {cuenta("no")} · ⏳ {cuenta("pendiente")}
+          <Icono nombre="check" size={13} /> {cuenta("si")} · <Icono nombre="cruz" size={13} /> {cuenta("no")} · <Icono nombre="reloj" size={13} /> {cuenta("pendiente")}
         </span>
       </div>
       <ul className="cumplidas-lista">
         {filas.map((x) => (
           <li key={x.mercado} className={`res-${x.r}`}>
-            <span className="res-icono" aria-hidden="true">
-              {ESTADO[x.r][0]}
-            </span>
+            <span className="res-icono"><Icono nombre={ESTADO[x.r][0]} size={16} /></span>
             <span className="res-mercado">{nombreMercado(x.mercado, pre)}</span>
             <span className="res-prob">
               {pct(x.prob)} · justa {momio(1 / x.prob)}
@@ -95,7 +94,7 @@ export default function VivoPage({ liga, evento, ligas, boleto, onVolver }) {
         <span className="state-title">No se pudo cargar el partido</span>
         <span className="state-desc">{error}</span>
         <button type="button" className="btn btn-secondary" onClick={onVolver}>
-          ← Volver
+          <Icono nombre="flechaIzq" size={15} /> Volver
         </button>
       </div>
     );
@@ -120,7 +119,7 @@ export default function VivoPage({ liga, evento, ligas, boleto, onVolver }) {
   return (
     <div className="partido-page">
       <button type="button" className="btn btn-secondary volver" onClick={onVolver}>
-        ← Volver a los partidos
+        <Icono nombre="flechaIzq" size={15} /> Volver a los partidos
       </button>
 
       <section className={`panel vivo-hero ${terminado ? "terminado" : ""}`}>

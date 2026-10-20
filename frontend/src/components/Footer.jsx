@@ -1,4 +1,5 @@
 import BrandIcon from "./BrandIcon";
+import Icono from "./Icono";
 
 export default function Footer() {
   return (
@@ -36,7 +37,7 @@ export default function Footer() {
         <div className="footer-col">
           <h3>Desarrollado por</h3>
           <a className="footer-tecnopriv-link" href="https://tecnopriv.online" target="_blank" rel="noopener noreferrer">
-            TecnoPriv ↗
+            TecnoPriv <Icono nombre="enlaceExterno" size={13} />
           </a>
         </div>
       </div>

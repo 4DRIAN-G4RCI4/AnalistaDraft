@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { analizarBoleto, probManual } from "../boleto";
 import { fecha, momio, pct } from "../format";
 import Puntos from "./Puntos";
+import Icono from "./Icono";
 
 const numero = (v) => {
   const n = parseFloat(String(v).replace(",", "."));
@@ -69,7 +70,7 @@ export default function BoletoPanel({ boleto, abierto, setAbierto }) {
     <>
       {!abierto && piernas.length > 0 && (
         <button ref={fab} type="button" className="boleto-fab" onClick={() => setAbierto(true)}>
-          <span aria-hidden="true">🧮</span> Simulador ({piernas.length}) · <b>{pct(a.prob)}</b> · cuota {cuota.toFixed(2)}
+          <Icono nombre="calculadora" size={17} /> Simulador ({piernas.length}) · <b>{pct(a.prob)}</b> · cuota {cuota.toFixed(2)}
         </button>
       )}
       {abierto && <div className="drawer-overlay" onClick={() => setAbierto(false)} aria-hidden="true" />}

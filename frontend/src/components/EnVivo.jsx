@@ -3,6 +3,7 @@ import { linkSeguro, momio, pct } from "../format";
 import AddButton from "./AddButton";
 import Ganador from "./Ganador";
 import Alineaciones from "./Alineaciones";
+import Icono from "./Icono";
 
 // Botón "Ver alineaciones": las pide solo al abrirlas.
 function VerAlineaciones({ p }) {
@@ -36,7 +37,17 @@ function VerAlineaciones({ p }) {
   );
 }
 
-const ICONO = { gol: "⚽", autogol: "⚽ (autogol)", amarilla: "🟨", roja: "🟥" };
+// La tarjeta se distingue por forma y color, y además lleva texto para quien no percibe el color.
+const ICONO = {
+  gol: <Icono nombre="balon" size={15} titulo="Gol" />,
+  autogol: (
+    <>
+      <Icono nombre="balon" size={15} titulo="Autogol" /> (autogol)
+    </>
+  ),
+  amarilla: <Icono nombre="tarjeta" size={15} className="icono-amarilla" titulo="Tarjeta amarilla" />,
+  roja: <Icono nombre="tarjeta" size={15} className="icono-roja" titulo="Tarjeta roja" />,
+};
 
 const CADA = 60e3;
 
@@ -193,7 +204,7 @@ export default function EnVivo({ liga, ligas, boleto, soloVivo = false, onAbrir 
             <span className="vivo-minuto">{p.minuto}</span>
             {onAbrir && (
               <button type="button" className="btn vivo-abrir" onClick={() => onAbrir(p)}>
-                Abrir partido →
+                Abrir partido <Icono nombre="flechaDer" size={14} />
               </button>
             )}
             <button type="button" className="news-toggle vivo-desplegar" onClick={() => alternar(p)} aria-expanded={abierto(p)}>

@@ -2,6 +2,7 @@ import { fecha } from "../format";
 import { Enfrentamiento } from "./Equipo";
 import MejorApuesta from "./MejorApuesta";
 import Ganador from "./Ganador";
+import Icono from "./Icono";
 
 // Tarjeta compacta de la lista: lo principal y "Ver más" para la página completa del partido.
 export default function MatchCard({ p, boleto, onAbrir, ligaNombre, finalizado = false }) {
@@ -27,7 +28,8 @@ export default function MatchCard({ p, boleto, onAbrir, ligaNombre, finalizado =
         </>
       )}
       <button type="button" className="btn ver-mas" onClick={() => onAbrir(p)}>
-        {finalizado ? "Ver si se cumplieron los parlays →" : "Ver más: todos los datos del partido →"}
+        {finalizado ? "Ver si se cumplieron los parlays" : "Ver más: todos los datos del partido"}
+        <Icono nombre="flechaDer" size={15} />
       </button>
       {!finalizado && alertas > 0 && <span className="ver-mas-nota alert-text">{alertas} alerta(s) en el análisis</span>}
     </article>

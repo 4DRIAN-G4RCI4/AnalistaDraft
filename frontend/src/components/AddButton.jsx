@@ -1,3 +1,4 @@
+import Icono from "./Icono";
 export default function AddButton({ boleto, sel }) {
   const dentro = boleto.tiene(sel);
   return (
@@ -8,7 +9,7 @@ export default function AddButton({ boleto, sel }) {
       aria-label={`${dentro ? "Quitar del" : "Agregar al"} boleto: ${sel.mercado}`}
       aria-pressed={dentro}
     >
-      {dentro ? "✓" : "+"}
+      <Icono nombre={dentro ? "check" : "mas"} size={14} />
     </button>
   );
 }
