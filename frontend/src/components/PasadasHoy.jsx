@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { pedir } from "../hooks/useAnalisis";
 import MatchCard from "./MatchCard";
+import Icono from "./Icono";
 
 export default function PasadasHoy({ ligas, onAbrir, onVolver }) {
   const [partidos, setPartidos] = useState([]);
@@ -20,7 +21,7 @@ export default function PasadasHoy({ ligas, onAbrir, onVolver }) {
   return (
     <div className="pasadas-page">
       <button type="button" className="btn btn-secondary volver" onClick={onVolver}>
-        ← Volver
+        <Icono nombre="flechaIzq" size={15} /> Volver
       </button>
       <header className="home-head">
         <h1>Pasadas de hoy</h1>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { linkSeguro } from "../format";
 import { pedir } from "../hooks/useAnalisis";
+import Icono from "./Icono";
 
 // ESPN manda las zonas en inglés; Liga MX no las trae y se arman con el formato del torneo.
 const ZONA = {
@@ -50,7 +51,7 @@ export default function Tablas({ ligas, ligaInicial, onVolver }) {
   return (
     <div className="partido-page">
       <button type="button" className="btn btn-secondary volver" onClick={onVolver}>
-        ← Volver a los partidos
+        <Icono nombre="flechaIzq" size={15} /> Volver a los partidos
       </button>
       <section className="panel tablas">
         <div className="panel-head">

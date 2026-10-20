@@ -1,4 +1,5 @@
 import { useTheme } from "../useTheme";
+import Icono from "./Icono";
 
 export default function ThemeToggle() {
   const { dark, toggle } = useTheme();
@@ -10,7 +11,7 @@ export default function ThemeToggle() {
       aria-label={dark ? "Activar modo claro" : "Activar modo oscuro"}
       className="theme-toggle"
     >
-      {dark ? "☀️" : "🌙"}
+      <Icono nombre={dark ? "sol" : "luna"} size={18} />
     </button>
   );
 }

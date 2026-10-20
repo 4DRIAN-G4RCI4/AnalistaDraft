@@ -2,11 +2,12 @@ import { useState } from "react";
 import { fecha, momio, pct } from "../format";
 import { pierna } from "../mercados";
 import AddButton from "./AddButton";
+import Icono from "./Icono";
 
 export const MOMENTO = {
-  ahora: ["✅", "Buen momento"],
-  esperar: ["⏳", "Mejor espera"],
-  evitar: ["⛔", "Mejor no"],
+  ahora: [<Icono key="i" nombre="check" size={15} />, "Buen momento"],
+  esperar: [<Icono key="i" nombre="reloj" size={15} />, "Mejor espera"],
+  evitar: [<Icono key="i" nombre="prohibido" size={15} />, "Mejor no"],
 };
 const NIVEL = { alta: "Alta", media: "Media", baja: "Baja" };
 const ORDEN = { alta: 0, media: 1, baja: 2 };

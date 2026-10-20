@@ -10,6 +10,7 @@ import EnVivo from "./components/EnVivo";
 import Tablas from "./components/Tablas";
 import VivoPage from "./components/VivoPage";
 import PasadasHoy from "./components/PasadasHoy";
+import Icono from "./components/Icono";
 import ResultadoPage from "./components/ResultadoPage";
 import { nombreMercado } from "./mercados";
 import BoletoPanel from "./components/BoletoPanel";
@@ -150,7 +151,7 @@ export default function App() {
             <span className="state-title">No se encontró el partido</span>
             <span className="state-desc">{error || "Puede que ya se haya jugado o que no esté en los próximos 14 días."}</span>
             <button type="button" className="btn btn-secondary" onClick={volver}>
-              ← Volver a los partidos
+              <Icono nombre="flechaIzq" size={15} /> Volver a los partidos
             </button>
           </div>
         ) : (
@@ -207,7 +208,7 @@ export default function App() {
 
           {error ? (
             <div className="panel state state-error" role="alert">
-              <span className="state-icon" aria-hidden="true">⚠</span>
+              <span className="state-icon"><Icono nombre="alerta" size={20} /></span>
               <span className="state-title">No se pudo cargar el análisis</span>
               <span className="state-desc">{error}</span>
             </div>

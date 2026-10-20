@@ -1,8 +1,10 @@
+import Icono from "./Icono";
+
 export default function Disclaimer() {
   return (
     <div className="disclaimer" role="note">
-      <span className="warn-icon" aria-hidden="true">
-        ⚠
+      <span className="warn-icon">
+        <Icono nombre="alerta" size={17} />
       </span>
       <span>
         <strong>Datos públicos, no certezas.</strong> Todo sale de fuentes públicas y gratuitas (ESPN, Transfermarkt y las
