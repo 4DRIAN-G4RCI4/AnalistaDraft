@@ -18,7 +18,7 @@
   --up-dim: #22c58b1f;
   --down: #dc2b3e; /* AJUSTADO de #f2545b: 3.39:1 sobre --surface en claro, bajo AA para texto normal */
   --down-dim: #f2545b1f;
-  --warn: #b8860b;
+  --warn: #8a6508; /* AJUSTADO de #b8860b: 3.25:1 sobre --surface, bajo AA (4.5:1). Ahora 5.21:1 */
   --warn-dim: #e7b93f1f;
 
   /* --- type (mismas fuentes que tecnopriv) --- */
@@ -63,6 +63,9 @@
   --accent: #5c7fff;
   --accent-dim: #5c7fff26;
   --warn: #e7b93f;
+  /* el verde y el rojo del modo claro quedan en 3.84:1 y 4.09:1 sobre el fondo oscuro: aquí van sus variantes */
+  --up: #34d399;
+  --down: #f87171;
 
   color-scheme: dark;
 }
@@ -298,8 +301,8 @@ select:focus-visible {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 38px;
-  height: 38px;
+  width: 44px; /* mínimo táctil de la HIG */
+  height: 44px;
   border-radius: 50%;
   border: 1px solid var(--border);
   background: var(--surface);
@@ -315,12 +318,11 @@ select:focus-visible {
   color: var(--text);
 }
 @media (max-width: 640px) {
+  /* En móvil la navegación baja al alcance del pulgar y deja de cortarse:
+     antes los 7 enlaces se salían del ancho y "Aciertos" y "Simulador" quedaban invisibles. */
   .navbar {
     grid-template-columns: 1fr auto;
-    grid-template-areas:
-      "brand tools"
-      "links links";
-    row-gap: var(--sp-4);
+    grid-template-areas: "brand tools";
   }
 
   .navbar-brand {
@@ -332,9 +334,72 @@ select:focus-visible {
   }
 
   .navbar-links {
-    grid-area: links;
+    position: fixed;
+    inset: auto 0 0 0;
+    z-index: 50;
     width: 100%;
-    gap: var(--sp-6);
+    gap: 0;
+    justify-content: space-around;
+    padding: 6px max(var(--sp-2), env(safe-area-inset-left)) calc(6px + env(safe-area-inset-bottom)) max(var(--sp-2), env(safe-area-inset-right));
+    font-size: 0.72rem;
+    border-top: 1px solid var(--border-soft);
+    /* capa funcional: translúcida sobre el contenido, nunca dentro de él */
+    background: color-mix(in srgb, var(--bg) 82%, transparent);
+    backdrop-filter: blur(18px) saturate(1.4);
+    -webkit-backdrop-filter: blur(18px) saturate(1.4);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .navbar-links::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* los saltos dentro de la página no son secciones: fuera de la barra inferior */
+  .navbar-links .nav-ancla {
+    display: none;
+  }
+
+  .navbar-links a,
+  .navbar-links .nav-boleto {
+    display: grid;
+    place-items: center;
+    min-height: 44px; /* mínimo táctil de la HIG */
+    min-width: 44px;
+    padding-inline: var(--sp-2);
+    white-space: nowrap;
+    text-align: center;
+  }
+
+  /* el subrayado de activo no cabe en una barra inferior: se marca con color */
+  .navbar-links a.active::after {
+    display: none;
+  }
+
+  .navbar-links a.active {
+    color: var(--accent);
+  }
+
+  /* espacio para que la barra no tape el final del contenido */
+  .app {
+    padding-bottom: calc(60px + env(safe-area-inset-bottom));
+  }
+
+  /* scroll edge effect: el contenido se desvanece al llegar a la barra en vez de chocar con ella */
+  .navbar-links::before {
+    content: "";
+    position: absolute;
+    inset: -20px 0 100% 0;
+    pointer-events: none;
+    background: linear-gradient(to top, var(--bg), transparent);
+  }
+
+  @media (prefers-reduced-transparency: reduce) {
+    .navbar-links {
+      background: var(--bg);
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+    }
   }
 
   .navbar-search {
@@ -835,8 +900,10 @@ select:focus-visible {
 .coin-filter-chip {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   flex-shrink: 0;
+  min-height: 44px; /* mínimo táctil de la HIG */
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-full);
@@ -1709,6 +1776,9 @@ html {
 }
 
 .link-btn {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px; /* mínimo táctil de la HIG: el texto era de 15 px de alto */
   background: none;
   border: none;
   padding: 0;
@@ -2846,7 +2916,8 @@ body {
   padding: var(--sp-4) var(--sp-5);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  background: linear-gradient(120deg, var(--accent-dim), var(--surface) 60%);
+  /* sin degradado: el color de marca se reserva para acciones primarias y estado (branding.md) */
+  background: var(--surface);
 }
 
 .tablero-head h2 {
