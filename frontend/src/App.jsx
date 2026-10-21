@@ -24,6 +24,15 @@ const VIVO = "vivo"; // solo los partidos en juego, de todas las ligas
 
 const parametro = (k) => new URLSearchParams(window.location.search).get(k);
 
+// Qué tan viejo es el dato que se está viendo. Solo aparece si ya pasó un rato: quien va a apostar
+// necesita saber si el marcador que lee es de ahora o de hace media hora.
+function Antiguedad({ desde }) {
+  const min = Math.floor((Date.now() - new Date(desde).getTime()) / 60000);
+  if (!Number.isFinite(min) || min < 5) return null;
+  const texto = min < 60 ? `hace ${min} min` : min < 1440 ? `hace ${Math.floor(min / 60)} h` : "de ayer o antes";
+  return <span className={`dato-viejo${min >= 30 ? " dato-rancio" : ""}`}> · datos {texto}</span>;
+}
+
 function ligaInicial() {
   if (parametro("liga")) return parametro("liga");
   try {
@@ -193,6 +202,7 @@ export default function App() {
               <span className="tablero-sub">
                 {data ? `${data.liga} · ${data.partidos.length} partidos` : "Cargando…"}
                 {actualizando && <span className="actualizando"> · actualizando…</span>}
+                {!actualizando && data && <Antiguedad desde={data.actualizado} />}
               </span>
             </div>
             {liga !== HOY && (
