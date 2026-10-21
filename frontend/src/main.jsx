@@ -17,3 +17,13 @@ createRoot(document.getElementById('root')).render(
     </ThemeProvider>
   </StrictMode>,
 )
+
+// Instalable y con arranque instantáneo aunque el servidor gratis esté dormido.
+// En desarrollo no se registra: serviría archivos viejos mientras editas.
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {
+      // sin service worker la app sigue funcionando, solo pierde el arranque offline
+    })
+  })
+}
