@@ -12,3 +12,7 @@
 # El service worker nunca se cachea: si se queda uno viejo, la app no se puede actualizar.
 /sw.js
   Cache-Control: no-cache, no-store, must-revalidate
+
+# Netlify lo sirve como octet-stream y algunos navegadores lo rechazan con ese tipo.
+/manifest.webmanifest
+  Content-Type: application/manifest+json; charset=utf-8
