@@ -317,9 +317,10 @@ select:focus-visible {
   border-color: var(--border-soft, var(--border));
   color: var(--text);
 }
-@media (max-width: 640px) {
-  /* En móvil la navegación baja al alcance del pulgar y deja de cortarse:
-     antes los 7 enlaces se salían del ancho y "Aciertos" y "Simulador" quedaban invisibles. */
+/* 1024px: por debajo de ese ancho los 7 enlaces no caben en una fila y se salían de la pantalla
+   (en tablet se perdían Pasadas, Aciertos y Simulador, y aparecía scroll horizontal). */
+@media (max-width: 1024px) {
+  /* La navegación baja al alcance del pulgar y deja de cortarse. */
   .navbar {
     grid-template-columns: 1fr auto;
     grid-template-areas: "brand tools";
@@ -971,6 +972,21 @@ select:focus-visible {
 @media (max-width: 480px) {
   .footer-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+/* iPhone SE y similares: nombres largos de equipo o mercado se cortaban en seco */
+@media (max-width: 400px) {
+  .app {
+    padding-inline: var(--sp-4);
+  }
+
+  .mejor-label,
+  .reco-mercado,
+  .reco-partido,
+  .leg-market,
+  .match-liga {
+    overflow-wrap: anywhere;
   }
 }
 
@@ -2487,6 +2503,12 @@ html {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: var(--sp-2);
+  min-width: 0; /* sin esto el hijo no puede encogerse y el nombre del partido se corta */
+}
+
+.reco-top > * {
+  min-width: 0;
 }
 
 .reco-nivel {
@@ -3894,6 +3916,16 @@ body {
 .actualizando {
   color: var(--accent);
   animation: pulse-dot 1.4s ease-in-out infinite;
+}
+
+/* Antigüedad del dato: discreta si es de hace poco, en ámbar cuando ya conviene refrescar */
+.dato-viejo {
+  color: var(--text-faint);
+}
+
+.dato-rancio {
+  color: var(--warn);
+  font-weight: 600;
 }
 
 @media (prefers-reduced-motion: reduce) {
