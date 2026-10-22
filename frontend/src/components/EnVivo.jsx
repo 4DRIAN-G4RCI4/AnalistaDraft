@@ -120,25 +120,33 @@ export default function EnVivo({ liga, ligas, boleto, soloVivo = false, onAbrir 
   const [cargado, setCargado] = useState(false);
   const [abiertos, setAbiertos] = useState({}); // id -> true/false (estadísticas desplegadas)
   const [goles, setGoles] = useState({}); // id del partido -> nombre del equipo que acaba de anotar
-  const antes = useRef(null); // marcadores del refresco anterior
+  const [rojas, setRojas] = useState({}); // id del partido -> nombre del expulsado
+  const antes = useRef(null); // marcadores y expulsiones del refresco anterior
 
-  // Compara con el refresco anterior: si un equipo sumó goles, se anima ~8 s.
+  // Compara con el refresco anterior: si cayó un gol o una roja, se anima ~8 s.
   function actualizar(lista) {
     const previos = antes.current;
-    antes.current = Object.fromEntries(lista.map((p) => [p.id, [p.local.goles, p.visita.goles]]));
+    const foto = (p) => [p.local.goles, p.visita.goles, p.eventos?.filter((e) => e.tipo === "roja").length ?? 0];
+    antes.current = Object.fromEntries(lista.map((p) => [p.id, foto(p)]));
     setCargado(true);
-    if (!previos) return setPartidos(lista); // la primera carga no anima goles viejos
-    const nuevos = {};
+    if (!previos) return setPartidos(lista); // la primera carga no anima lo que ya había
+    const golNuevo = {};
+    const rojaNueva = {};
     for (const p of lista) {
-      const [l, v] = previos[p.id] ?? [p.local.goles, p.visita.goles];
-      if (p.local.goles > l) nuevos[p.id] = p.local.nombre;
-      else if (p.visita.goles > v) nuevos[p.id] = p.visita.nombre;
+      const [l, v, r] = previos[p.id] ?? foto(p);
+      if (p.local.goles > l) golNuevo[p.id] = p.local.nombre;
+      else if (p.visita.goles > v) golNuevo[p.id] = p.visita.nombre;
+      const expulsiones = p.eventos?.filter((e) => e.tipo === "roja") ?? [];
+      if (expulsiones.length > r) rojaNueva[p.id] = expulsiones.at(-1)?.jugador || "Expulsión";
     }
     setPartidos(lista);
-    if (Object.keys(nuevos).length) {
-      setGoles((g) => ({ ...g, ...nuevos }));
-      setTimeout(() => setGoles((g) => Object.fromEntries(Object.entries(g).filter(([id]) => !(id in nuevos)))), 8000);
-    }
+    const avisar = (nuevos, set) => {
+      if (!Object.keys(nuevos).length) return;
+      set((x) => ({ ...x, ...nuevos }));
+      setTimeout(() => set((x) => Object.fromEntries(Object.entries(x).filter(([id]) => !(id in nuevos)))), 8000);
+    };
+    avisar(golNuevo, setGoles);
+    avisar(rojaNueva, setRojas);
   }
 
   useEffect(() => {
@@ -188,11 +196,18 @@ export default function EnVivo({ liga, ligas, boleto, soloVivo = false, onAbrir 
       </div>
       <ul className="vivo-lista">
         {lista.map((p) => (
-          <li key={p.id} className={goles[p.id] ? "con-gol" : ""}>
+          <li key={p.id} className={goles[p.id] ? "con-gol" : rojas[p.id] ? "con-roja" : ""}>
             {goles[p.id] && (
               <div className="gol-aviso" role="status">
                 <span className="gol-texto">¡GOOOL!</span>
                 <span className="gol-equipo">{goles[p.id]}</span>
+              </div>
+            )}
+            {!goles[p.id] && rojas[p.id] && (
+              <div className="roja-aviso" role="status">
+                <Icono nombre="tarjeta" size={15} />
+                <span className="roja-texto">Expulsado</span>
+                <span className="roja-jugador">{rojas[p.id]}</span>
               </div>
             )}
             {todas && <span className="match-liga">{ligas[p.liga]?.nombre}</span>}
