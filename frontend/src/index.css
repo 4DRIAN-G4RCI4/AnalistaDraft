@@ -3780,8 +3780,11 @@ body {
 
 .vivo-stats {
   flex-basis: 100%;
+  width: 100%;
   border-collapse: collapse;
   font-size: 0.8rem;
+  /* columnas fijas: con el nombre largo de un equipo la tabla se desbalanceaba */
+  table-layout: fixed;
 }
 
 .vivo-stats td,
@@ -3789,6 +3792,19 @@ body {
   padding: 3px 6px;
   text-align: center;
   border-bottom: 1px solid var(--border-soft);
+}
+
+/* la columna del centro lleva el nombre de la estadística; las de los lados, solo cifras */
+.vivo-stats thead th {
+  font-size: 0.74rem;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+.vivo-stats tbody th {
+  width: 46%;
+  color: var(--text-dim);
+  font-weight: 600;
 }
 
 .vivo-stats td {
@@ -3809,6 +3825,14 @@ body {
   padding: 0;
   font-size: 0.8rem;
   font-weight: 600;
+  overflow-wrap: anywhere; /* nombres largos de jugador y equipo */
+}
+
+.vivo-eventos li {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding-block: 2px;
 }
 
 .vivo-eventos span {
@@ -4367,9 +4391,15 @@ body {
 
 .vivo-hero-marcador {
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
-  gap: var(--sp-4);
+  /* minmax(0,1fr) deja que los nombres largos se encojan en vez de empujar el marcador */
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: start; /* los escudos arrancan a la misma altura aunque un nombre ocupe más líneas */
+  gap: var(--sp-3);
+}
+
+/* el marcador se alinea con los escudos, no con el centro del bloque */
+.vivo-hero-centro {
+  padding-top: clamp(6px, 2.4vw, 14px);
 }
 
 .vivo-hero-equipo {
@@ -4377,12 +4407,21 @@ body {
   flex-direction: column;
   align-items: center;
   gap: var(--sp-2);
+  min-width: 0;
+  justify-content: flex-start;
   text-align: center;
   font-family: var(--font-display);
-  font-size: 1.15rem;
+  font-size: clamp(0.88rem, 3.4vw, 1.15rem);
+  /* break-word solo parte la palabra si de verdad no cabe; anywhere cortaba "Manch-ester" */
+  overflow-wrap: break-word;
+  hyphens: auto;
 }
 
 .vivo-hero-equipo img {
+  /* el atributo width=64 del HTML es demasiado en pantallas angostas */
+  width: clamp(40px, 13vw, 64px);
+  height: auto;
+  aspect-ratio: 1;
   object-fit: contain;
 }
 
@@ -4395,9 +4434,10 @@ body {
 
 .vivo-hero-goles {
   font-family: var(--font-mono);
-  font-size: 3rem;
+  font-size: clamp(1.9rem, 9vw, 3rem);
   font-weight: 800;
   line-height: 1;
+  white-space: nowrap; /* "4 - 1" nunca se parte en varias líneas */
 }
 
 .vivo-hero-centro .vivo-minuto {
