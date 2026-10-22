@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { fecha, linkSeguro, momio, pct } from "../format";
-import { CATEGORIA, nombreMercado, pierna } from "../mercados";
+import { CATEGORIA, nombreMercado, opuesto, pierna } from "../mercados";
 import { Enfrentamiento, FORMA } from "./Equipo";
 import Puntos from "./Puntos";
 import MejorApuesta from "./MejorApuesta";
@@ -18,10 +18,11 @@ const PRINCIPALES = [
 ];
 
 // Una fila de mercado. est = estadística pura (solo goles); casa = cuota de las casas si existe.
-function Fila({ p, m, prob, est, casa, destacado, boleto, soloEst, simple }) {
+// contraparte: es el otro lado de la línea de arriba, se dibuja pegada a ella.
+function Fila({ p, m, prob, est, casa, destacado, boleto, soloEst, simple, contraparte }) {
   const dif = casa && est != null ? est - casa.prob : null; // positivo = posible valor
   return (
-    <tr className={destacado ? "pick" : ""}>
+    <tr className={`${destacado ? "pick" : ""}${contraparte ? " contraparte" : ""}`.trim()}>
       <td>{nombreMercado(m, p)}</td>
       {!simple && (
         <td className="bar-cell">
@@ -235,8 +236,25 @@ export default function PartidoPage({ p, boleto, onVolver, vivoInicial = null })
           ? []
           : Object.entries(p.extras[tab].probs).map(([m, prob]) => [m, prob, null, null]);
 
-  // Vista simple: las más probables (60% o más), de mayor a menor
-  const masProbables = filas.filter(([, prob]) => prob >= 0.6).sort((a, b) => b[1] - a[1]).slice(0, 8);
+  // Vista simple: las más probables (60% o más), de mayor a menor.
+  // Si una selección tiene línea ("más de 8.5 corners"), se arrastra su contraparte aunque sea
+  // menos probable: quien apuesta compara los dos lados antes de decidir.
+  const masProbables = (() => {
+    const altas = filas.filter(([, prob]) => prob >= 0.6).sort((a, b) => b[1] - a[1]).slice(0, 8);
+    const puestas = new Set(altas.map(([m]) => m));
+    const salida = [];
+    for (const f of altas) {
+      salida.push(f);
+      const contraria = opuesto(f[0]);
+      if (!contraria || puestas.has(contraria)) continue;
+      const par = filas.find(([m]) => m === contraria);
+      if (par) {
+        salida.push([...par, true]); // marcada como contraparte de la de arriba
+        puestas.add(contraria);
+      }
+    }
+    return salida;
+  })();
   const simple = !verTodos;
   const visibles = simple ? masProbables : filas;
 
@@ -340,8 +358,8 @@ export default function PartidoPage({ p, boleto, onVolver, vivoInicial = null })
                 </tr>
               </thead>
               <tbody>
-                {visibles.map(([m, prob, est, casa]) => (
-                  <Fila key={m} p={p} m={m} prob={prob} est={est} casa={casa} destacado={picks.has(m)} boleto={boleto} soloEst={soloEst} simple={simple} />
+                {visibles.map(([m, prob, est, casa, contraparte]) => (
+                  <Fila key={m} p={p} m={m} prob={prob} est={est} casa={casa} destacado={picks.has(m)} boleto={boleto} soloEst={soloEst} simple={simple} contraparte={contraparte} />
                 ))}
                 {!visibles.length && (
                   <tr>
