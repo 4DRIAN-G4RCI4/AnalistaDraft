@@ -11,8 +11,8 @@ export default function Equipo({ e }) {
       <span className="team-valor">
         Plantilla <b>{eur(e.valor)}</b>
       </span>
-      <div className="form-row" role="img" aria-label={`Forma reciente: ${[...e.forma].map((c) => FORMA[c]?.[0] ?? c).join(" ") || "sin datos"}`}>
-        {[...e.forma].map((c, i) => (
+      <div className="form-row" role="img" aria-label={`Forma reciente: ${[...(e.forma ?? "")].map((c) => FORMA[c]?.[0] ?? c).join(" ") || "sin datos"}`}>
+        {[...(e.forma ?? "")].map((c, i) => (
           <span key={i} className={`form-dot ${FORMA[c]?.[1] ?? ""}`}>{FORMA[c]?.[0] ?? c}</span>
         ))}
       </div>
