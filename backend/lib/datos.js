@@ -23,6 +23,7 @@ export const LIGAS = {
   'usa.1': { nombre: 'MLS', tm: 'MLS1' },
   'arg.1': { nombre: 'Liga Argentina', tm: 'ARG1' },
   'bra.1': { nombre: 'Brasileirão', tm: 'BRA1' },
+  'col.1': { nombre: 'Liga Colombiana', tm: 'COL1' },
 };
 
 export const ESPN = 'https://site.api.espn.com/apis';

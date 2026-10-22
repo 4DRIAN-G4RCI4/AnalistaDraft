@@ -13,6 +13,7 @@ import PasadasHoy from "./components/PasadasHoy";
 import Icono from "./components/Icono";
 import InstalarApp from "./components/InstalarApp";
 import ResultadoPage from "./components/ResultadoPage";
+import Jugadores from "./components/Jugadores";
 import { nombreMercado } from "./mercados";
 import BoletoPanel from "./components/BoletoPanel";
 import { useBoleto } from "./hooks/useBoleto";
@@ -151,6 +152,8 @@ export default function App() {
         <VivoPage liga={parametro("liga")} evento={vivoId} ligas={ligas} boleto={boleto} onVolver={volver} />
       ) : vista === "pasadas" ? (
         <PasadasHoy ligas={ligas} onAbrir={abrirResultado} onVolver={volver} />
+      ) : vista === "jugadores" ? (
+        <Jugadores ligas={ligas} ligaInicial={liga} onVolver={volver} />
       ) : vista === "tablas" ? (
         <Tablas ligas={ligas} ligaInicial={liga} onVolver={volver} />
       ) : partidoId ? (
