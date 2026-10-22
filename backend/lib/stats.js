@@ -21,7 +21,8 @@ const compacto = s => ({
   rosters: (s.rosters ?? []).map(r => ({
     team: { id: r.team?.id }, formation: r.formation,
     roster: (r.roster ?? []).map(j => ({
-      athlete: { id: j.athlete?.id, displayName: j.athlete?.displayName, lastName: j.athlete?.lastName }, position: { abbreviation: j.position?.abbreviation }, jersey: j.jersey,
+      // la foto solo la tienen algunos; se guarda la que venga para no inventar URLs que dan 404
+      athlete: { id: j.athlete?.id, displayName: j.athlete?.displayName, lastName: j.athlete?.lastName, headshot: j.athlete?.headshot?.href ?? null }, position: { abbreviation: j.position?.abbreviation }, jersey: j.jersey,
       starter: j.starter, subbedIn: j.subbedIn, stats: soloStats(j.stats),
     })),
   })),
@@ -39,7 +40,7 @@ const compacto = s => ({
 });
 
 const resumen = (liga, id, ttl) =>
-  json(`${ESPN}/site/v2/sports/soccer/${liga}/summary?event=${id}`, ttl, `resumen_v5_${liga}_${id}`, compacto);
+  json(`${ESPN}/site/v2/sports/soccer/${liga}/summary?event=${id}`, ttl, `resumen_v6_${liga}_${id}`, compacto);
 const valor = (stats, nombre) => Number(stats?.find(s => s.name === nombre)?.displayValue ?? stats?.find(s => s.name === nombre)?.value) || 0;
 
 export async function previa(liga, eventoId) {
@@ -59,6 +60,37 @@ export async function previa(liga, eventoId) {
       })),
     }])),
   };
+}
+
+// Goleadores de una liga. Toma los últimos partidos de cada equipo de la tabla y suma lo que hizo
+// cada jugador. Sale de los resúmenes ya guardados en disco, así que normalmente no pide nada a ESPN.
+export async function goleadoresLiga(liga, equipos) {
+  const porNombre = Object.fromEntries(equipos.map((e) => [String(e.id), e]));
+  // los partidos ya jugados que ESPN guarda por equipo: con los de media tabla se cubre la liga entera
+  const vistos = new Set();
+  const acumulado = {};
+  const sumar = (j, eq) => {
+    const a = (acumulado[j.id] ??= { ...j, equipo: eq.nombre, equipoId: eq.id, escudo: eq.logo ?? null, goles: 0, tiros: 0, tirosPuerta: 0, partidos: 0 });
+    a.foto ??= j.foto ?? null;
+    a.goles += j.goles;
+    a.tiros += j.tiros;
+    a.tirosPuerta += j.tirosPuerta;
+    a.partidos += j.partidos;
+  };
+
+  await Promise.all(
+    equipos.map(async (eq) => {
+      if (vistos.has(eq.id)) return;
+      vistos.add(eq.id);
+      const st = await estadisticasEquipo(liga, eq.id, eq.eventos ?? []).catch(() => null);
+      for (const j of st?.jugadores ?? []) sumar(j, porNombre[String(eq.id)] ?? eq);
+    }),
+  );
+
+  return Object.values(acumulado)
+    .filter((j) => j.goles > 0 || j.tiros > 0)
+    .sort((a, b) => b.goles - a.goles || b.tirosPuerta - a.tirosPuerta || b.tiros - a.tiros)
+    .slice(0, 50);
 }
 
 // Resúmenes en video que publica ESPN del partido. Vacío mientras no haya terminado.
@@ -85,6 +117,7 @@ const jugado = (liga, id) => memo(`jugado:${id}`, 7 * 24 * 3600e3, async () => {
       goles1T: mios.filter(k => k.period.number === 1).length,
       jugadores: (rosters[id] ?? []).map(j => ({
         id: String(j.athlete?.id), nombre: j.athlete?.displayName ?? '', pos: j.position?.abbreviation ?? '',
+        foto: j.athlete?.headshot ?? null,
         jugo: Boolean(j.starter || j.subbedIn), titular: Boolean(j.starter),
         goles: valor(j.stats, 'totalGoals'), tiros: valor(j.stats, 'totalShots'), tirosPuerta: valor(j.stats, 'shotsOnTarget'),
       })),
@@ -97,7 +130,8 @@ function jugadoresEquipo(partidos, equipoId) {
   const acc = {};
   for (const st of partidos) {
     for (const j of st[equipoId].jugadores) {
-      const a = (acc[j.id] ??= { id: j.id, nombre: j.nombre, pos: j.pos, partidos: 0, titular: 0, goles: 0, tiros: 0, tirosPuerta: 0 });
+      const a = (acc[j.id] ??= { id: j.id, nombre: j.nombre, pos: j.pos, foto: j.foto ?? null, partidos: 0, titular: 0, goles: 0, tiros: 0, tirosPuerta: 0 });
+      a.foto ??= j.foto ?? null;
       if (a.pos === 'SUB' && j.pos && j.pos !== 'SUB') a.pos = j.pos; // ESPN pone "SUB" al que entró de cambio
       a.partidos += j.jugo ? 1 : 0;
       a.titular += j.titular ? 1 : 0;

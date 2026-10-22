@@ -61,6 +61,18 @@ const TRAZOS = {
     </>
   ),
   guion: <path d="M5.5 12h13" />,
+  tabla: (
+    <>
+      <rect x="3.5" y="4.5" width="17" height="15" rx="2" />
+      <path d="M3.5 9.5h17M3.5 14.5h17M9 9.5v10" />
+    </>
+  ),
+  jugador: (
+    <>
+      <circle cx="12" cy="8" r="3.6" />
+      <path d="M5 20a7 7 0 0 1 14 0" />
+    </>
+  ),
 };
 
 export default function Icono({ nombre, size = 16, className = "", titulo = null }) {
