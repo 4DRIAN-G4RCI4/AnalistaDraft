@@ -8,6 +8,7 @@ import MejorApuesta from "./MejorApuesta";
 import ParlayPartidoCard from "./ParlayPartidoCard";
 import { armarParlaysPartido } from "../parlaysPartido";
 import Icono from "./Icono";
+import Videos from "./Videos";
 
 const CADA = 60e3;
 const PRINCIPALES = ["Local", "Empate", "Visita", "Local o empate", "Visita o empate", "Hay ganador (sin empate)", "Más de 1.5 goles", "Más de 2.5 goles", "Menos de 2.5 goles", "Menos de 3.5 goles", "Ambos anotan", "No ambos anotan"];
@@ -138,6 +139,9 @@ export default function VivoPage({ liga, evento, ligas, boleto, onVolver }) {
         </div>
         <VivoDetalle p={vivo} boleto={terminado ? null : boleto} />
       </section>
+
+      {/* ESPN publica los clips durante el partido, no solo al final */}
+      <Videos liga={liga} evento={evento} />
 
       <button type="button" className="btn ver-pre" onClick={alternarPre} aria-expanded={verPre}>
         {verPre ? "Ocultar análisis prepartido" : "Ver análisis prepartido"}
