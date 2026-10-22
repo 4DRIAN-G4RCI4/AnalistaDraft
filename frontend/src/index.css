@@ -317,9 +317,10 @@ select:focus-visible {
   border-color: var(--border-soft, var(--border));
   color: var(--text);
 }
-/* En teléfono y tablet la navegación se recoge en un menú lateral: siete enlaces no caben
-   en una fila, y una barra fija abajo robaba alto de pantalla en una app que es sobre todo lista. */
-@media (max-width: 1024px) {
+/* La navegación se recoge en un menú lateral hasta que la fila de enlaces cabe de verdad.
+   Medido: marca 262 + enlaces 876 + herramientas 44 + separaciones = 1294px. Con el corte en
+   1024px aparecían los enlaces sin espacio y salía scroll horizontal entre 1025 y 1293. */
+@media (max-width: 1299px) {
   .navbar {
     grid-template-columns: 1fr auto;
     grid-template-areas: "brand tools";
@@ -385,7 +386,7 @@ select:focus-visible {
   background: var(--accent);
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 1299px) {
   .nav-hamburguesa {
     display: flex;
   }
@@ -4551,7 +4552,7 @@ body {
   z-index: 55;
   left: var(--sp-3);
   right: var(--sp-3);
-  bottom: calc(60px + var(--sp-2) + env(safe-area-inset-bottom));
+  bottom: calc(var(--sp-3) + env(safe-area-inset-bottom));
   display: flex;
   align-items: center;
   gap: var(--sp-3);
@@ -4617,7 +4618,7 @@ body {
   cursor: pointer;
 }
 
-/* por encima de 1024px no se muestra: ahí no hay barra inferior ni se instala igual */
+/* el aviso de instalar es para teléfono y tablet; en escritorio estorba */
 @media (min-width: 1025px) {
   .instalar-app {
     display: none;
