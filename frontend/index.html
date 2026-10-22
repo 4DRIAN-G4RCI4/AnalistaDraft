@@ -30,6 +30,24 @@
           document.documentElement.classList.toggle("dark", dark);
         } catch (e) {}
       })();
+
+      // Red de seguridad: si el script principal no arranca (un service worker viejo sirviendo
+      // una copia que ya no existe), se borra la caché, se da de baja el worker y se recarga.
+      window.addEventListener("error", function (e) {
+        var src = e && e.target && e.target.src;
+        if (!src || src.indexOf("/assets/") === -1) return;
+        if (sessionStorage.getItem("analista-recuperando")) return; // una sola vez por sesión
+        sessionStorage.setItem("analista-recuperando", "1");
+        var listo = Promise.resolve();
+        if (window.caches) listo = caches.keys().then(function (ks) { return Promise.all(ks.map(function (k) { return caches.delete(k); })); });
+        listo
+          .then(function () {
+            if (!navigator.serviceWorker) return;
+            return navigator.serviceWorker.getRegistrations().then(function (rs) { return Promise.all(rs.map(function (r) { return r.unregister(); })); });
+          })
+          .catch(function () {})
+          .then(function () { window.location.reload(); });
+      }, true);
     </script>
   </head>
   <body>
