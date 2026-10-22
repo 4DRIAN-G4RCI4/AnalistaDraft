@@ -11,6 +11,7 @@ import Tablas from "./components/Tablas";
 import VivoPage from "./components/VivoPage";
 import PasadasHoy from "./components/PasadasHoy";
 import Icono from "./components/Icono";
+import InstalarApp from "./components/InstalarApp";
 import ResultadoPage from "./components/ResultadoPage";
 import { nombreMercado } from "./mercados";
 import BoletoPanel from "./components/BoletoPanel";
@@ -278,6 +279,7 @@ export default function App() {
       )}
 
       <BoletoPanel boleto={boleto} abierto={boletoAbierto} setAbierto={setBoletoAbierto} />
+      <InstalarApp />
       <Disclaimer />
       <Footer />
     </div>

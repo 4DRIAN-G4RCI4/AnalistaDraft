@@ -1527,6 +1527,22 @@ html {
   border-bottom: 1px solid var(--border-soft);
 }
 
+/* La contraparte de una línea va pegada a la suya: se quita la raya que las separaba
+   y se marca el par con una barra al costado, para leer los dos lados de un vistazo. */
+.prob-table tr.contraparte td {
+  border-top: 0;
+}
+
+.prob-table tr:not(.contraparte):has(+ tr.contraparte) td {
+  border-bottom-color: transparent;
+}
+
+.prob-table tr:not(.contraparte):has(+ tr.contraparte) td:first-child,
+.prob-table tr.contraparte td:first-child {
+  box-shadow: inset 2px 0 0 var(--border-soft);
+  padding-left: 8px;
+}
+
 .prob-table td {
   text-align: right;
   padding: 5px 4px;
@@ -2193,6 +2209,58 @@ html {
 
 .partido-hero .match-xg {
   font-size: 1.6rem;
+}
+
+/* En teléfono la cabecera del partido ocupaba media pantalla antes de llegar a las apuestas:
+   escudos de 72px, nombres de 1.3rem y los chips en tres filas. Aquí se compacta. */
+@media (max-width: 640px) {
+  .partido-hero {
+    gap: var(--sp-3);
+    padding: var(--sp-4);
+  }
+
+  .partido-hero .team img,
+  .partido-hero .team-logo-ph {
+    width: 48px;
+    height: 48px;
+  }
+
+  .partido-hero .team-name {
+    font-size: 1.02rem;
+  }
+
+  .partido-hero .match-xg {
+    font-size: 1.3rem;
+  }
+
+  .partido-hero .team-meta {
+    font-size: 0.72rem;
+  }
+
+  /* los chips en una sola fila deslizable en vez de apilarse */
+  .match-chips {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    overflow-x: auto;
+    scrollbar-width: none;
+    margin-inline: calc(var(--sp-4) * -1);
+    padding-inline: var(--sp-4);
+  }
+
+  .match-chips::-webkit-scrollbar {
+    display: none;
+  }
+
+  .match-chips > * {
+    flex-shrink: 0;
+  }
+
+  /* el texto largo en monoespaciado es lo que peor se lee en pantalla angosta */
+  .mejor-razon,
+  .mejor-razon-linea,
+  .mejor-meta {
+    font-family: var(--font-ui);
+  }
 }
 
 .partido-grid {
@@ -3916,6 +3984,85 @@ body {
 .actualizando {
   color: var(--accent);
   animation: pulse-dot 1.4s ease-in-out infinite;
+}
+
+/* Aviso para instalar la app: se apoya encima de la barra inferior y se puede cerrar */
+.instalar-app {
+  position: fixed;
+  z-index: 55;
+  left: var(--sp-3);
+  right: var(--sp-3);
+  bottom: calc(60px + var(--sp-2) + env(safe-area-inset-bottom));
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: 0 8px 28px -10px rgba(10, 14, 23, 0.3);
+  animation: instalar-entra 0.35s var(--ease-brand);
+}
+
+@keyframes instalar-entra {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .instalar-app {
+    animation: none;
+  }
+}
+
+.instalar-icono img {
+  display: block;
+  border-radius: 9px;
+}
+
+.instalar-texto {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  line-height: 1.3;
+}
+
+.instalar-texto b {
+  font-size: 0.9rem;
+}
+
+.instalar-texto span {
+  font-size: 0.76rem;
+  color: var(--text-dim);
+}
+
+.instalar-btn {
+  flex-shrink: 0;
+  min-height: 36px;
+  padding-inline: var(--sp-4);
+}
+
+.instalar-cerrar {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 50%;
+  background: var(--surface-raised);
+  color: var(--text-dim);
+  cursor: pointer;
+}
+
+/* por encima de 1024px no se muestra: ahí no hay barra inferior ni se instala igual */
+@media (min-width: 1025px) {
+  .instalar-app {
+    display: none;
+  }
 }
 
 /* Antigüedad del dato: discreta si es de hace poco, en ámbar cuando ya conviene refrescar */
