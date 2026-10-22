@@ -27,10 +27,19 @@ const compacto = s => ({
   })),
   keyEvents: (s.keyEvents ?? []).filter(k => k.scoringPlay).map(k => ({ scoringPlay: true, team: { id: k.team?.id }, period: { number: k.period?.number } })),
   boxscore: { teams: (s.boxscore?.teams ?? []).map(t => ({ team: { id: t.team?.id }, statistics: soloStats(t.statistics) })) },
+  // Resúmenes y jugadas sueltas que publica ESPN: MP4 abierto, sin login. Solo en partidos jugados.
+  videos: (s.videos ?? []).map(v => ({
+    id: v.id,
+    titulo: v.headline ?? '',
+    duracion: v.duration ?? null,
+    portada: v.thumbnail ?? null,
+    mp4: v.links?.source?.href ?? v.links?.source?.HD?.href ?? null,
+    pagina: v.links?.web?.href ?? null,
+  })).filter(v => v.mp4),
 });
 
 const resumen = (liga, id, ttl) =>
-  json(`${ESPN}/site/v2/sports/soccer/${liga}/summary?event=${id}`, ttl, `resumen_v4_${liga}_${id}`, compacto);
+  json(`${ESPN}/site/v2/sports/soccer/${liga}/summary?event=${id}`, ttl, `resumen_v5_${liga}_${id}`, compacto);
 const valor = (stats, nombre) => Number(stats?.find(s => s.name === nombre)?.displayValue ?? stats?.find(s => s.name === nombre)?.value) || 0;
 
 export async function previa(liga, eventoId) {
@@ -50,6 +59,12 @@ export async function previa(liga, eventoId) {
       })),
     }])),
   };
+}
+
+// Resúmenes en video que publica ESPN del partido. Vacío mientras no haya terminado.
+export async function videosPartido(liga, eventoId) {
+  const s = await resumen(liga, eventoId, 30 * 60e3);
+  return s.videos ?? [];
 }
 
 // Un partido terminado no cambia: se guarda para siempre.
