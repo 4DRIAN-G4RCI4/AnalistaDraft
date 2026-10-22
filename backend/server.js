@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import zlib from 'node:zlib';
 import { LIGAS, tabla, partidos, noticias, valorPlantilla, memo, limpiarDisco, enVivo, buscarPartido } from './lib/datos.js';
 import { golesEsperados, mercados, decimal, sinMargen, armarParlays, ajustarAMercado, combinarGoles, conteoEsperado, mercadosConteo, fraccion1T, mercadosTiempos, probGoleadores, mercadosVivo } from './lib/modelo.js';
-import { previa, estadisticasEquipo, videosPartido, CATEGORIAS } from './lib/stats.js';
+import { previa, estadisticasEquipo, videosPartido, goleadoresLiga, CATEGORIAS } from './lib/stats.js';
 import { eventosLiga, buscarEvento, consenso } from './lib/cuotas.js';
 import { resumenPartido } from './lib/analisis.js';
 
@@ -174,6 +174,26 @@ function analisisListo(liga, dias) {
   return Promise.race([nuevo, new Promise(ok => setTimeout(() => ok(anterior.get(k)), 2000))]);
 }
 
+// Goleadores de una liga: a cada equipo de la tabla se le pasan los partidos que ESPN guarda
+// de él, y de ahí salen los jugadores. Los resúmenes ya están en disco de analizar partidos.
+async function goleadoresDeLiga(liga) {
+  const tbl = await tabla(liga);
+  // un partido cualquiera da los "últimos 5" de sus dos equipos; con varios se cubre la liga
+  const prox = await partidos(liga, 7);
+  const eventosPorEquipo = {};
+  const previas = await Promise.allSettled(prox.slice(0, 10).map(p => previa(liga, p.id)));
+  for (const r of previas) {
+    if (r.status !== 'fulfilled') continue;
+    for (const [id, evs] of Object.entries(r.value.ultimos ?? {})) {
+      eventosPorEquipo[id] ??= evs;
+    }
+  }
+  const equipos = tbl
+    .filter(t => eventosPorEquipo[t.id]?.length)
+    .map(t => ({ id: t.id, nombre: t.nombre, logo: t.logo, eventos: eventosPorEquipo[t.id] }));
+  return { liga: LIGAS[liga].nombre, actualizado: new Date().toISOString(), jugadores: await goleadoresLiga(liga, equipos) };
+}
+
 // "Hoy": los partidos de hoy (hora de Ciudad de México) de todas las ligas, juntos.
 const HOY = 'hoy';
 const diaCDMX = d => new Date(d).toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' }); // AAAA-MM-DD
@@ -274,6 +294,12 @@ http.createServer(async (req, res) => {
       const liga = url.searchParams.get('liga'), evento = url.searchParams.get('evento') ?? '';
       if (!Object.hasOwn(LIGAS, liga) || !/^\d{1,12}$/.test(evento)) return enviar(res, 400, { error: 'Partido inválido' });
       return enviar(res, 200, (await previa(liga, evento)).alineaciones);
+    }
+    if (url.pathname === '/api/jugadores') {
+      const liga = url.searchParams.get('liga');
+      if (!Object.hasOwn(LIGAS, liga)) return enviar(res, 400, { error: 'Liga inválida' });
+      // pesado la primera vez (lee los resúmenes de cada equipo); se guarda 6 h
+      return enviar(res, 200, await memo(`jugadores:${liga}`, 6 * 3600e3, () => goleadoresDeLiga(liga)));
     }
     if (url.pathname === '/api/videos') {
       const liga = url.searchParams.get('liga'), evento = url.searchParams.get('evento') ?? '';
