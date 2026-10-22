@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import zlib from 'node:zlib';
 import { LIGAS, tabla, partidos, noticias, valorPlantilla, memo, limpiarDisco, enVivo, buscarPartido } from './lib/datos.js';
 import { golesEsperados, mercados, decimal, sinMargen, armarParlays, ajustarAMercado, combinarGoles, conteoEsperado, mercadosConteo, fraccion1T, mercadosTiempos, probGoleadores, mercadosVivo } from './lib/modelo.js';
-import { previa, estadisticasEquipo, CATEGORIAS } from './lib/stats.js';
+import { previa, estadisticasEquipo, videosPartido, CATEGORIAS } from './lib/stats.js';
 import { eventosLiga, buscarEvento, consenso } from './lib/cuotas.js';
 import { resumenPartido } from './lib/analisis.js';
 
@@ -274,6 +274,12 @@ http.createServer(async (req, res) => {
       const liga = url.searchParams.get('liga'), evento = url.searchParams.get('evento') ?? '';
       if (!Object.hasOwn(LIGAS, liga) || !/^\d{1,12}$/.test(evento)) return enviar(res, 400, { error: 'Partido inválido' });
       return enviar(res, 200, (await previa(liga, evento)).alineaciones);
+    }
+    if (url.pathname === '/api/videos') {
+      const liga = url.searchParams.get('liga'), evento = url.searchParams.get('evento') ?? '';
+      if (!Object.hasOwn(LIGAS, liga) || !/^\d{1,12}$/.test(evento)) return enviar(res, 400, { error: 'Partido inválido' });
+      // Resúmenes de ESPN: se piden solo al abrir un partido, no en el análisis de todas las ligas.
+      return enviar(res, 200, await memo(`videos:${evento}`, 30 * 60e3, () => videosPartido(liga, evento)));
     }
     if (url.pathname === '/api/partido' || url.pathname === '/api/prepartido') {
       const liga = url.searchParams.get('liga'), evento = url.searchParams.get('evento') ?? '';

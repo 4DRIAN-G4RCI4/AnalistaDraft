@@ -6,6 +6,7 @@ import { VivoDetalle } from "./EnVivo";
 import ParlayPartidoCard from "./ParlayPartidoCard";
 import { armarParlaysPartido } from "../parlaysPartido";
 import Icono from "./Icono";
+import Videos from "./Videos";
 
 const PRINCIPALES = ["Local", "Empate", "Visita", "Local o empate", "Visita o empate", "Hay ganador (sin empate)", "Más de 1.5 goles", "Más de 2.5 goles", "Menos de 2.5 goles", "Menos de 3.5 goles", "Ambos anotan", "No ambos anotan"];
 const ESTADO = { si: ["check", "Se cumplió"], no: ["cruz", "No se cumplió"] };
@@ -148,6 +149,8 @@ export default function ResultadoPage({ liga, evento, ligas, onVolver }) {
         {/* sin boleto: el partido ya terminó, no hay nada que apostar */}
         <VivoDetalle p={vivo} boleto={null} />
       </section>
+
+      <Videos liga={liga} evento={evento} />
 
       {!pre ? (
         <div className="panel state" role="status">
