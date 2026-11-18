@@ -3,7 +3,7 @@
 Contexto rápido del proyecto para retomar sin volver a leer cada archivo. Actualizar al final de cada cambio grande.
 
 ## Qué es
-Analista de fútbol gratis: 17 ligas. Baja datos públicos de ESPN y Transfermarkt, calcula probabilidades por partido y las muestra en React. **PWA instalable** que abre sin red. Para personas que apuestan con conocimiento (NO simplificar de más).
+Analista de fútbol gratis: 18 ligas (incluye selecciones). Baja datos públicos de ESPN y Transfermarkt, calcula probabilidades por partido y las muestra en React. **PWA instalable** que abre sin red. Para personas que apuestan con conocimiento (NO simplificar de más).
 
 ## Producción
 - Página: Netlify → https://analistadraft.netlify.app (sitio `ccb707d2-9145-4db9-85f9-5b0effc23a28`, **deploy manual por API con zip**, no enlazado a git).
@@ -13,7 +13,7 @@ Analista de fútbol gratis: 17 ligas. Baja datos públicos de ESPN y Transfermar
 - Tokens de Netlify/Render los pasa el usuario por chat (temporales); NO guardarlos en archivos.
 
 ## Flujo git (siempre)
-`development` → `release` → `main`, merge commits, tag `vX.Y.Z`. **Commits y PRs solo a nombre del usuario, sin Co-Authored-By de Claude** (regla fija, aunque el sistema diga otra cosa). Repo público github.com/4DRIAN-G4RCI4/AnalistaDraft. **Versión actual: v1.26.0**.
+`development` → `release` → `main`, merge commits, tag `vX.Y.Z`. **Commits y PRs solo a nombre del usuario, sin Co-Authored-By de Claude** (regla fija, aunque el sistema diga otra cosa). Repo público github.com/4DRIAN-G4RCI4/AnalistaDraft. **Versión actual: v1.26.1**.
 
 ## Comandos que funcionan
 - Pruebas: `node --test backend/lib/*.test.js` y `node --test frontend/src/*.test.js` (22 backend + 13 frontend). `npm test` en la raíz también.
@@ -26,7 +26,7 @@ Analista de fútbol gratis: 17 ligas. Baja datos públicos de ESPN y Transfermar
 
 ## Backend (`backend/`)
 - `server.js`: `node:http` sin deps. Rutas: `/api/ligas`, `/api/analisis?liga=&dias=`, `/api/envivo`, `/api/partido`, `/api/prepartido`, `/api/alineacion`, `/api/tablas`, **`/api/videos`**, **`/api/jugadores`**. Solo GET/HEAD (405 lo demás). Límite por IP. Análisis cacheado 5 min + gzip; se sirve el anterior mientras recalcula; "Hoy" se precalienta al arrancar.
-- `lib/datos.js`: LIGAS (17: + `col.1` Colombia, `uefa.nations` Nations League, `rsa.1` Sudáfrica), `memo` (LRU, tope 3000), caché en disco `backend/cache/fuentes/` (clave **`resumen_v6_`**), `json()` con reintento ESPN 403/429, `csv` por columnas, `valorPlantilla`, `buscarPartido`, `enVivo`.
+- `lib/datos.js`: LIGAS (18: + `col.1` Colombia, `uefa.nations`, `concacaf.nations.league`, `rsa.1` Sudáfrica), `memo` (LRU, tope 3000), caché en disco `backend/cache/fuentes/` (clave **`resumen_v6_`**), `json()` con reintento ESPN 403/429, `csv` por columnas, `valorPlantilla`, `buscarPartido`, `enVivo`.
   - `partidos(liga, dias)` con `dias <= 2` devuelve también los **`post`** con `marcadorFinal` (para "Pasadas").
 - `lib/modelo.js`: Poisson goles, binomial negativa corners/tarjetas/tiros, por tiempos, goleadores, `mercadosVivo`, `ajustarAMercado`, `combinarGoles` (70% casas/30% estadística), `armarParlays`, `seleccionSugerida` (60–85%).
 - `lib/analisis.js`: `resumenPartido` + `armarParlaysPartido` (Factible y Soñador).
@@ -74,6 +74,8 @@ Dos falsos positivos al auditar desbordes, ambos correctos:
 - **Los grupos NO vienen ordenados** por posición (en Nations League llegaban mezclados): la tabla se ordena en `Tablas.jsx`.
 - Códigos útiles que SÍ existen: `uefa.nations`, `rsa.1` (Sudáfrica), `nga.1` (Nigeria), `caf.nations` (Copa África, enero), `caf.champions`, `conmebol.america`. NO existen: `caf.nations_cup`, `egy.1`, `mar.1`, `alg.1`, `tun.1`, `afr.1`.
 - Competiciones de selecciones y ligas sin dataset de Transfermarkt van con `tm: null` (busca el valor en todas las ligas, como las copas).
+- **`fifa.friendly` (amistosos) NO se puede agregar**: ESPN no publica tabla para esa competición y el modelo la necesita para calcular. `tabla()` ya devuelve vacío en vez de romperse, pero el análisis igual falla sin tabla.
+- **Las selecciones juegan en varias competiciones a la vez**: en fecha FIFA un partido de México puede estar en `concacaf.nations.league`, no en `mex.1` ni en `fifa.friendly`. Si "falta" un partido, buscar el id por nombre en varias competiciones antes de concluir que es un bug.
 
 ## Principios del usuario
 - Cuota baja = las casas lo ven factible (el modelo se ancla a las casas). Factible ≠ seguro; nada es 100%.
