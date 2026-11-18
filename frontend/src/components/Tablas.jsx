@@ -46,7 +46,10 @@ export default function Tablas({ ligas, ligaInicial, onVolver }) {
   const zonaDe = (t) => (liga === "mex.1" ? zonaLigaMX(t.pos) : t.zona && { texto: ZONA[t.zona.texto] ?? t.zona.texto, color: t.zona.color });
   const leyenda = [...new Map(filas.map(zonaDe).filter(Boolean).map((z) => [z.texto, z])).values()];
   const grupos = [...new Set(filas.map((t) => t.grupo ?? null))]; // MLS y Argentina: dos tablas
-  const GRUPO = { "Eastern Conference": "Conferencia Este", "Western Conference": "Conferencia Oeste", "Group A": "Grupo A", "Group B": "Grupo B" };
+  // "Group A1" -> "Grupo A1" sin listar los 14 de la Nations League uno por uno
+  const GRUPO = (g) =>
+    ({ "Eastern Conference": "Conferencia Este", "Western Conference": "Conferencia Oeste" })[g] ??
+    g.replace(/^Group\b/i, "Grupo").replace(/^League\b/i, "Liga");
 
   return (
     <div className="partido-page">
@@ -76,10 +79,10 @@ export default function Tablas({ ligas, ligaInicial, onVolver }) {
           <>
             {grupos.map((g) => (
             <div key={g ?? "unica"} className="tabla-grupo">
-            {g && <h3 className="forma-titulo">{GRUPO[g] ?? g}</h3>}
+            {g && <h3 className="forma-titulo">{GRUPO(g)}</h3>}
             <div className="table-wrap">
               <table className="tabla-pos">
-                <caption className="visually-hidden">Tabla de posiciones de {ligas[liga].nombre}{g ? ` · ${GRUPO[g] ?? g}` : ""}</caption>
+                <caption className="visually-hidden">Tabla de posiciones de {ligas[liga].nombre}{g ? ` · ${GRUPO(g)}` : ""}</caption>
                 <thead>
                   <tr>
                     <th>#</th>
@@ -95,7 +98,8 @@ export default function Tablas({ ligas, ligaInicial, onVolver }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {filas.filter((t) => (t.grupo ?? null) === g).map((t) => {
+                  {/* ESPN no siempre manda los grupos ordenados (en Nations League venían mezclados) */}
+                  {filas.filter((t) => (t.grupo ?? null) === g).sort((a, b) => (a.pos ?? 99) - (b.pos ?? 99)).map((t) => {
                     const z = zonaDe(t);
                     return (
                       <tr key={t.id} style={z ? { "--zona": z.color } : undefined} className={z ? "con-zona" : ""}>
