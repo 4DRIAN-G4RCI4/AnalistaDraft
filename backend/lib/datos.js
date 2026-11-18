@@ -24,6 +24,9 @@ export const LIGAS = {
   'arg.1': { nombre: 'Liga Argentina', tm: 'ARG1' },
   'bra.1': { nombre: 'Brasileirão', tm: 'BRA1' },
   'col.1': { nombre: 'Liga Colombiana', tm: 'COL1' },
+  // selecciones: no hay valor de plantilla por club, se busca en todas las ligas como en las copas
+  'uefa.nations': { nombre: 'Nations League', tm: null },
+  'rsa.1': { nombre: 'Liga Sudafricana', tm: null },
 };
 
 export const ESPN = 'https://site.api.espn.com/apis';
