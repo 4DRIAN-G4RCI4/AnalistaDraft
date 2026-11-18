@@ -25,7 +25,7 @@ export const LIGAS = {
   'bra.1': { nombre: 'Brasileirão', tm: 'BRA1' },
   'col.1': { nombre: 'Liga Colombiana', tm: 'COL1' },
   // selecciones: no hay valor de plantilla por club, se busca en todas las ligas como en las copas
-  'uefa.nations': { nombre: 'Nations League', tm: null },
+  'uefa.nations': { nombre: 'Nations League UEFA', tm: null },
   'concacaf.nations.league': { nombre: 'Nations League Concacaf', tm: null },
   // los amistosos (fifa.friendly) NO entran: ESPN no publica tabla para ellos y el modelo la necesita
   'rsa.1': { nombre: 'Liga Sudafricana', tm: null },
