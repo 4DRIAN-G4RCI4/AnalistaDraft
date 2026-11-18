@@ -49,7 +49,8 @@ export default function Tablas({ ligas, ligaInicial, onVolver }) {
   // "Group A1" -> "Grupo A1" sin listar los 14 de la Nations League uno por uno
   const GRUPO = (g) =>
     ({ "Eastern Conference": "Conferencia Este", "Western Conference": "Conferencia Oeste" })[g] ??
-    g.replace(/^Group\b/i, "Grupo").replace(/^League\b/i, "Liga");
+    // sin ^: en Concacaf vienen compuestos ("League A, Group A") y había que traducir las dos partes
+    g.replace(/\bGroup\b/gi, "Grupo").replace(/\bLeague\b/gi, "Liga");
 
   return (
     <div className="partido-page">
@@ -77,6 +78,12 @@ export default function Tablas({ ligas, ligaInicial, onVolver }) {
           <p className="muted">Sin tabla para esta liga ahora.</p>
         ) : (
           <>
+            {liga === "concacaf.nations.league" && (
+              <p className="tab-nota">
+                México, Estados Unidos y Canadá juegan la Nations League pero no salen aquí: como anfitriones del Mundial 2026
+                entran directo a la fase final y no disputan la fase de grupos. Sus partidos sí aparecen en Partidos y Pasadas.
+              </p>
+            )}
             {grupos.map((g) => (
             <div key={g ?? "unica"} className="tabla-grupo">
             {g && <h3 className="forma-titulo">{GRUPO(g)}</h3>}
