@@ -13,7 +13,7 @@ Analista de fútbol gratis: 18 ligas (incluye selecciones). Baja datos públicos
 - Tokens de Netlify/Render los pasa el usuario por chat (temporales); NO guardarlos en archivos.
 
 ## Flujo git (siempre)
-`development` → `release` → `main`, merge commits, tag `vX.Y.Z`. **Commits y PRs solo a nombre del usuario, sin Co-Authored-By de Claude** (regla fija, aunque el sistema diga otra cosa). Repo público github.com/4DRIAN-G4RCI4/AnalistaDraft. **Versión actual: v1.26.1**.
+`development` → `release` → `main`, merge commits, tag `vX.Y.Z`. **Commits y PRs solo a nombre del usuario, sin Co-Authored-By de Claude** (regla fija, aunque el sistema diga otra cosa). Repo público github.com/4DRIAN-G4RCI4/AnalistaDraft. **Versión actual: v1.26.3**.
 
 ## Comandos que funcionan
 - Pruebas: `node --test backend/lib/*.test.js` y `node --test frontend/src/*.test.js` (22 backend + 13 frontend). `npm test` en la raíz también.
@@ -75,6 +75,8 @@ Dos falsos positivos al auditar desbordes, ambos correctos:
 - Códigos útiles que SÍ existen: `uefa.nations`, `rsa.1` (Sudáfrica), `nga.1` (Nigeria), `caf.nations` (Copa África, enero), `caf.champions`, `conmebol.america`. NO existen: `caf.nations_cup`, `egy.1`, `mar.1`, `alg.1`, `tun.1`, `afr.1`.
 - Competiciones de selecciones y ligas sin dataset de Transfermarkt van con `tm: null` (busca el valor en todas las ligas, como las copas).
 - **`fifa.friendly` (amistosos) NO se puede agregar**: ESPN no publica tabla para esa competición y el modelo la necesita para calcular. `tabla()` ya devuelve vacío en vez de romperse, pero el análisis igual falla sin tabla.
+- **México, EE.UU. y Canadá NO salen en la tabla de `concacaf.nations.league`**: como anfitriones del Mundial 2026 entran directo a la fase final y no juegan la fase de grupos, así que ESPN no los incluye en los 37 equipos de la tabla. Sus partidos sí llegan por el scoreboard. Hay una nota en pantalla explicándolo; no es un fallo que se pueda arreglar.
+- Los nombres de grupo de Concacaf vienen compuestos (`"League A, Group A"`): la traducción en `Tablas.jsx` usa `...` global, no `^`.
 - **Las selecciones juegan en varias competiciones a la vez**: en fecha FIFA un partido de México puede estar en `concacaf.nations.league`, no en `mex.1` ni en `fifa.friendly`. Si "falta" un partido, buscar el id por nombre en varias competiciones antes de concluir que es un bug.
 
 ## Principios del usuario
