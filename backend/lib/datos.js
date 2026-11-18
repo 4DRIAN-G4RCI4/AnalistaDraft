@@ -26,6 +26,8 @@ export const LIGAS = {
   'col.1': { nombre: 'Liga Colombiana', tm: 'COL1' },
   // selecciones: no hay valor de plantilla por club, se busca en todas las ligas como en las copas
   'uefa.nations': { nombre: 'Nations League', tm: null },
+  'concacaf.nations.league': { nombre: 'Nations League Concacaf', tm: null },
+  // los amistosos (fifa.friendly) NO entran: ESPN no publica tabla para ellos y el modelo la necesita
   'rsa.1': { nombre: 'Liga Sudafricana', tm: null },
 };
 
@@ -129,8 +131,10 @@ export async function json(url, ttl, nombre = url.replace(/^https:\/\/[^/]+\//, 
 
 export const tabla = liga => memo(`tabla:${liga}`, TTL.tabla, async () => {
   const j = await json(`${ESPN}/v2/sports/soccer/${liga}/standings`, TTL.tabla);
-  // MLS y Argentina vienen en dos grupos (conferencias / grupos A y B): se juntan con el nombre del grupo
-  return j.children.flatMap(c => c.standings.entries.map(e => ({ e, grupo: j.children.length > 1 ? c.name : null }))).map(({ e, grupo }) => {
+  // MLS y Argentina vienen en dos grupos (conferencias / grupos A y B): se juntan con el nombre del grupo.
+  // Algunas competiciones (amistosos) no publican tabla: devolver vacío en vez de romper toda la petición.
+  const hijos = j.children ?? [];
+  return hijos.flatMap(c => (c.standings?.entries ?? []).map(e => ({ e, grupo: hijos.length > 1 ? c.name : null }))).map(({ e, grupo }) => {
     const s = Object.fromEntries(e.stats.map(x => [x.name, x.value]));
     return {
       id: e.team.id, nombre: e.team.displayName, pj: s.gamesPlayed, gf: s.pointsFor, gc: s.pointsAgainst, pts: s.points, pos: s.rank,
